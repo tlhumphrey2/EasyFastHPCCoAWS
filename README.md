@@ -1,4 +1,4 @@
-The following is a conversion of the EasyFastHPCCOnAWS.pdf in the repository to markdown.
+The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.
 
 LexisNexis Risk Solutions
 # Easy Setup of Fast HPCC System on AWS
