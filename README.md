@@ -2,18 +2,13 @@ The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is i
 
 # Easy Setup of Fast HPCC System on AWS
 |
-##
-| Timothy L Humphrey |
-| 6/17/2015 |
-
-Easy Setup of Fast HPCC System on AWS
 
 1. Introduction
 
 Configuring and deploying an HPCC System on AWS from your Windows computer is a two-step process when using the HPCC CloudFormation template and accompanying scripts.
 
-1. 1.Copy the 14 accompanying scripts and your ssh pem file to an S3 bucket.Ã?Â
-2. 2.Using CloudFormation on the AWS console to do the rest.Ã?Â
+1. 1.Copy the 14 accompanying scripts and your ssh pem file to an S3 bucket.
+2. 2.Using CloudFormation on the AWS console to do the rest.
 
 When you get to section 3, "Using CloudFormation …", you need a placement group in the region where you deploy your HPCC System. Appendix B gives detailed instructions for making one. Also, for section 3, you need an ssh key pair on your Windows machine. Appendix C gives detailed instructions on how to make the key pair on the AWS console and download it to your Windows machine.
 
@@ -23,8 +18,8 @@ This document provides details for accomplishing the above two-step process.
 
 Here is a summary of this process:
 
-1. 1.Make an S3 bucket to copy scripts and ssh pem file.Ã?Â
-2. 2.Copy scripts and ssh pem file into created S3 bucket.Ã?Â
+1. 1.Make an S3 bucket to copy scripts and ssh pem file.
+2. 2.Copy scripts and ssh pem file into created S3 bucket.
 
 You need s3cmd installed on your Windows machine. Installation instructions are given in Appendix A.
 
@@ -55,10 +50,10 @@ You can check to see if the scripts and ssh pem file are in the s3 bucket using 
 
 Here is a summary of this process:
 
-1. 1.Navigate to the CloudFormation web page.Ã?Â
-2. 2.Enter a Unique Name for the stack being created and give a path to the HPCC CF template.Ã?Â
-3. 3.Fill in the HPCC CF template parameters, e.g. name of pem file, placement group, etc.Ã?Â
-4. 4.Click the "Create" button to start the process of creating the HPCC System on AWS.Ã?Â
+1. 1.Navigate to the CloudFormation web page.
+2. 2.Enter a Unique Name for the stack being created and give a path to the HPCC CF template.
+3. 3.Fill in the HPCC CF template parameters, e.g. name of pem file, placement group, etc.
+4. 4.Click the "Create" button to start the process of creating the HPCC System on AWS.
 
 ## 3.1 Navigate to CloudFormation Web Page
 
@@ -88,8 +83,7 @@ For the purpose of demonstrating the use of the HPCC CF template, I will change 
 
 Notice I changed NumberOfSlavesPerNode from 12 to 2, the NumberOfSlaveInstances from 7 to 1 and the instance types for the Master and Slaves, I changed to c3.2xlarge. Also, notice in Figure 8, above, that I've set HPCCPlacementGroup to "pg-tlh-best", which is the name of the placement group I created for the us-west-2 region, which is where this stack will be created.
 
-1.
-  1. 4Start Creation Process
+## 3.4 Start Creation Process
 
 Once you have the parameters the way you want them, you click on "Next" (where green arrow points in Figure 8, above). The next web page looks like Figure 9, below.
 
