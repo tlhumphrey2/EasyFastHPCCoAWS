@@ -7,8 +7,10 @@ The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is i
 
 Configuring and deploying an HPCC System on AWS from your Windows computer is a two-step process when using the HPCC CloudFormation template and accompanying scripts.
 
-1. 1.Copy the 14 accompanying scripts and your ssh pem file to an S3 bucket.
-2. 2.Use CloudFormation on the AWS console to do the rest.
+1. Copy the 14 accompanying scripts and your ssh pem file to an S3 bucket.
+2. Use CloudFormation on the AWS console to do the rest.
+
+The scripts of the repository are very similar to those in the BestHPCCoAWS repository.
 
 When you get to section 3, "Using CloudFormation …", you need a placement group in the region where you deploy your HPCC System. Appendix B gives detailed instructions for making one. Also, for section 3, you need an ssh key pair on your Windows machine. Appendix C gives detailed instructions on how to make the key pair on the AWS console and download it to your Windows machine.
 
