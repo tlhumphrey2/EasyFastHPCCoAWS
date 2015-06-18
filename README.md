@@ -1,21 +1,11 @@
-# EasyFastHPCCoAWS
-Cloud Formation template and scripts for easily configuring and deploying a fast HPCC System on AWS from browser
+The following is a conversion of the EasyFastHPCCOnAWS.pdf in the repository to markdown.
 
-| LexisNexis Risk Solutions |
-| --- |
-|
+LexisNexis Risk Solutions
 # Easy Setup of Fast HPCC System on AWS
- |
 |
 ##
- |
-|   |
 | Timothy L Humphrey |
 | 6/17/2015 |
-
-
-
-
 
 Easy Setup of Fast HPCC System on AWS
 
