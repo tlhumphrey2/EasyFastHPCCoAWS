@@ -12,6 +12,7 @@ $DefaultValuesOfCfgVariables{'slavesPerNode'}=1;
 $DefaultValuesOfCfgVariables{'roxienodes'}=0;
 $DefaultValuesOfCfgVariables{'supportnodes'}=1;
 $DefaultValuesOfCfgVariables{'non_support_instances'}=1;
+$DefaultValuesOfCfgVariables{'UserNameAndPassword'}='';
 
 #-----------------------------------------------------------------------------
 # Get the most recent stack name (we will assume this is the one to work with)
@@ -66,7 +67,7 @@ my ($InstanceDescriptions,@CfgVariable)=@_;
       $ValueOfCfgVariable{$cfgvar}=$DefaultValuesOfCfgVariables{$cfgvar};
    }
    
-   # Look for the variable name and gets it value. Store in ValueOfCfgVariable.
+   # Look for the variable name and get its value. Store in ValueOfCfgVariable.
    my $re='\b'.join("|",@CfgVariable).'\b';
    my $VariablesFound=0;
    for( my $i=0; $i < scalar(@z); $i++){
@@ -141,8 +142,18 @@ else{
 $cfgfile="/home/ec2-user/cfg_BestHPCC.sh";
 open(OUT,">>$cfgfile") || die "Can't open for append: \"$cfgfile\"\n";
 foreach my $cfgvar (keys %ValueOfCfgVariable){
-   print "DEBUG: $cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
-   print OUT "$cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
+   if (( $cfgvar eq 'UserNameAndPassword' ) && ( $ValueOfCfgVariable{$cfgvar} ne 'thumphrey/password' ) && ( $ValueOfCfgVariable{$cfgvar} =~ /^\w+\W.+$/ )){
+      my $username = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^(\w+)/;
+      my $password = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^$username.(.+)$/;
+      print "DEBUG: system_username=$username\n";
+      print OUT "system_username=$username\n";
+      print "DEBUG: system_password=$password\n";
+      print OUT "system_password=$password\n";
+   }
+   else{
+      print "DEBUG: $cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
+      print OUT "$cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
+   }
 }
 close(OUT);
 
