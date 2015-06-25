@@ -1,3 +1,5 @@
+2015/06/25 Added htpasswd authentication.
+
 The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.
 
 # Easy Setup of Fast HPCC System on AWS
