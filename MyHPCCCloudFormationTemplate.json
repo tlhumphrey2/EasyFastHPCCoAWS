@@ -5,6 +5,7 @@
     "Description" : "20150609 added: Support for ROXIE so ROXIEs are created on different instances than those having THOR slave nodes.",
     "Description" : "20150611 added: IAM Instance Profile need to be in resources. Currently they are parameters.",
     "Description" : "20150617 fixed: AMI id for eu-central-1 was incorrect. Fixed it.",
+    "Description" : "20150625 added: Add authentication, i.e. user-id and password",
     "Description" : "Need: Placement group need to be in resources. Currently they are parameters.",
     "Description" : "Need: Have parameters for data s3 bucket access and secret keys and for data s3 bucket name.",
     "Description" : "      Plus, have code that mounts bucket to dropzone if bucket name is given.",
@@ -16,13 +17,19 @@
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
+            "Default" : "tlh_keys_us_west_2"
+        },
+
+        "UserNameAndPassword" : {
+            "Description" : "(Optional) Enter like: username/password Used to log into ECL Watch and ECL IDE.",
+            "Type" : "String",
             "Default" : ""
         },
 
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "7"
+            "Default" : "1"
         },
 
         "NumberOfRoxieNodes" : {
@@ -34,7 +41,7 @@
         "NumberOfSlavesPerNode" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "12"
+            "Default" : "3"
         },
 
         "MasterInstanceType" : {
@@ -47,7 +54,7 @@
                 "d2.2xlarge",
                 "d2.4xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.2xlarge",
             "Type" : "String"
         },
 
@@ -62,7 +69,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.8xlarge",
+            "Default" : "c3.2xlarge",
             "Type" : "String"
         },
 
@@ -77,20 +84,20 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "c3.4xlarge",
+            "Default" : "c3.2xlarge",
             "Type" : "String"
         },
 
         "ScriptsS3BucketFolder" : {
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
-            "Default" : "s3://BuildHPCCScripts"
+            "Default" : "s3://BestHoA/instance_files"
         },
 
         "HPCCPlacementGroup" : {
             "Type" : "String",
             "Description" : "Placement Group using by HPCC System",
-            "Default" : ""
+            "Default" : "pg-tlh-best"
         }
     },
 
@@ -681,6 +688,11 @@
                           {
                                 "Key" : "roxienodes",
                                 "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "UserNameAndPassword",
+                                "Value" : {"Ref" : "UserNameAndPassword" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
