@@ -12,6 +12,8 @@ $DefaultValuesOfCfgVariables{'slavesPerNode'}=1;
 $DefaultValuesOfCfgVariables{'roxienodes'}=0;
 $DefaultValuesOfCfgVariables{'supportnodes'}=1;
 $DefaultValuesOfCfgVariables{'non_support_instances'}=1;
+$DefaultValuesOfCfgVariables{'UserNameAndPassword'}='';
+$DefaultValuesOfCfgVariables{'HPCCPlatform'}='HPCC-Platform-5.0.0-3';
 
 #-----------------------------------------------------------------------------
 # Get the most recent stack name (we will assume this is the one to work with)
@@ -66,7 +68,7 @@ my ($InstanceDescriptions,@CfgVariable)=@_;
       $ValueOfCfgVariable{$cfgvar}=$DefaultValuesOfCfgVariables{$cfgvar};
    }
    
-   # Look for the variable name and gets it value. Store in ValueOfCfgVariable.
+   # Look for the variable name and get its value. Store in ValueOfCfgVariable.
    my $re='\b'.join("|",@CfgVariable).'\b';
    my $VariablesFound=0;
    for( my $i=0; $i < scalar(@z); $i++){
@@ -141,8 +143,29 @@ else{
 $cfgfile="/home/ec2-user/cfg_BestHPCC.sh";
 open(OUT,">>$cfgfile") || die "Can't open for append: \"$cfgfile\"\n";
 foreach my $cfgvar (keys %ValueOfCfgVariable){
-   print "DEBUG: $cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
-   print OUT "$cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
+   if (( $cfgvar eq 'UserNameAndPassword' ) && ( $ValueOfCfgVariable{$cfgvar} ne 'thumphrey/password' ) && ( $ValueOfCfgVariable{$cfgvar} =~ /^\w+\W.+$/ )){
+      my $username = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^(\w+)/;
+      my $password = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^$username.(.+)$/;
+      print "DEBUG: system_username=$username\n";
+      print OUT "system_username=$username\n";
+      print "DEBUG: system_password=$password\n";
+      print OUT "system_password=$password\n";
+   }
+   elsif ( $cfgvar eq 'HPCCPlatform' ){
+      my $platformpath="http://cdn.hpccsystems.com/releases/CE-Candidate-<base_version>/bin/platform";   
+      my $platform="hpccsystems-platform_community-with-plugins-<version>.el6.x86_64.rpm";   
+      my $version = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^hpcc-platform-(.+)$/i;
+      my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
+      $platformpath =~ s/<base_version>/$base_version/;
+      $platform =~ s/<version>/$version/;
+      my $hpcc_platform="$platformpath/$platform";
+      print "DEBUG: hpcc_platform=$hpcc_platform\n";
+      print OUT "hpcc_platform=$hpcc_platform\n";
+   }
+   else{
+      print "DEBUG: $cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
+      print OUT "$cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
+   }
 }
 close(OUT);
 

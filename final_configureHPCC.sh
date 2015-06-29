@@ -41,8 +41,27 @@ fi
 envgen=/opt/HPCCSystems/sbin/envgen;
 
 # Make new environment.xml file for newly configured HPCC System.
-echo "$envgen -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override thor,@watchdogProgressEnabled,false -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes -slavesPerNode $slavesPerNode -roxieondemand 1"
-$envgen  -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override thor,@watchdogProgressEnabled,false -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
+echo "$envgen -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes -slavesPerNode $slavesPerNode -roxieondemand 1"
+$envgen  -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
+
+# IF username and password given THEN setup so system requires them
+if  [ -n "$system_username" ] && [ -n "$system_password" ]
+then
+  #Install HTTPD passwd tool
+  echo "yum install -y httpd-tools"
+  yum install -y httpd-tools
+
+  echo "htpasswd -cb /etc/HPCCSystems/.htpasswd $system_username $system_password"
+  htpasswd -cb /etc/HPCCSystems/.htpasswd $system_username $system_password
+
+  # turn on authentication method htpasswed
+  echo "For $created_environment_file, sed to change method to htpasswd and passwordExpirationWarningDays to 100"
+  sed "s/method=\"none\"/method=\"htpasswd\"/" $created_environment_file | sed "s/passwordExpirationWarningDays=\"[0-9]*\"/passwordExpirationWarningDays=\"100\"/" > ~/environment_with_htpasswd_enabled.xml 
+
+  # copy changed environment file back into $created_environment_file
+  echo "cp ~/environment_with_htpasswd_enabled.xml $created_environment_file"
+  cp ~/environment_with_htpasswd_enabled.xml $created_environment_file
+fi
 
 # Copy the newly created environment file  to /etc/HPCCSystems on all nodes of the THOR
 out_environment_file=/etc/HPCCSystems/environment.xml

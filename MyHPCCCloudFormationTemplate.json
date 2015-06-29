@@ -5,24 +5,40 @@
     "Description" : "20150609 added: Support for ROXIE so ROXIEs are created on different instances than those having THOR slave nodes.",
     "Description" : "20150611 added: IAM Instance Profile need to be in resources. Currently they are parameters.",
     "Description" : "20150617 fixed: AMI id for eu-central-1 was incorrect. Fixed it.",
-    "Description" : "Need: Placement group need to be in resources. Currently they are parameters.",
+    "Description" : "20150625 added: Add authentication, i.e. user-id and password",
+    "Description" : "20150629 added: We need to give user other choices for HPCC Platform (current set in cfg_BestHPCC.sh to 5.0.0-3)",
     "Description" : "Need: Have parameters for data s3 bucket access and secret keys and for data s3 bucket name.",
     "Description" : "      Plus, have code that mounts bucket to dropzone if bucket name is given.",
-    "Description" : "Need: We need to give user other choices for HPCC Platform (current set in cfg_BestHPCC.sh to 5.0.0-3)",
     "Description" : "Need: Make a different template that uses EBS volumes instead of SSD",
     "Description" : "Need: Add descriptions of the various resources.",
 
     "Parameters" : {
+
+        "HPCCPlatform" : {
+            "Description" : "The version of the HPCC Platform to install.",
+            "AllowedValues" : [
+                "HPCC-Platform-5.0.0-3",
+                "HPCC-Platform-5.0.16-1"
+                ],
+            "Default" : "HPCC-Platform-5.0.0-3",
+            "Type" : "String"
+        },
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
             "Default" : ""
         },
 
+        "UserNameAndPassword" : {
+            "Description" : "(Optional) Enter like: username/password Used to log into ECL Watch and ECL IDE.",
+            "Type" : "String",
+            "Default" : ""
+        },
+
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "7"
+            "Default" : "1"
         },
 
         "NumberOfRoxieNodes" : {
@@ -34,7 +50,7 @@
         "NumberOfSlavesPerNode" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "12"
+            "Default" : "3"
         },
 
         "MasterInstanceType" : {
@@ -47,7 +63,7 @@
                 "d2.2xlarge",
                 "d2.4xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.2xlarge",
             "Type" : "String"
         },
 
@@ -62,7 +78,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.8xlarge",
+            "Default" : "c3.2xlarge",
             "Type" : "String"
         },
 
@@ -77,14 +93,14 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "c3.4xlarge",
+            "Default" : "c3.2xlarge",
             "Type" : "String"
         },
 
         "ScriptsS3BucketFolder" : {
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
-            "Default" : "s3://BuildHPCCScripts"
+            "Default" : ""
         },
 
         "HPCCPlacementGroup" : {
@@ -454,10 +470,23 @@
                                 "echo starting setup_zz_zNxlarge_disks.pl",
                                 "~ec2-user/setup_zz_zNxlarge_disks.pl",
                                 "echo setup_zz_zNxlarge_disks.pl has completed",
-
+                                                                
+                                "echo starting setupCfgFileVariables.pl",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref" : "AWS::Region" }
+                                                ]
+                                        ]
+                                },
+                                "echo setupCfgFileVariables.pl has completed",
+                                                        
                                 "echo starting install_hpcc.sh",
-                                "~ec2-user/install_hpcc.sh",
-                                "echo install_hpcc.sh has completed"                            ]
+                                "/home/ec2-user/install_hpcc.sh",
+                                "echo install_hpcc.sh has completed"
+                                ]
                         ]
                     }
                 }
@@ -638,10 +667,23 @@
                                 "echo starting setup_zz_zNxlarge_disks.pl",
                                 "~ec2-user/setup_zz_zNxlarge_disks.pl",
                                 "echo setup_zz_zNxlarge_disks.pl has completed",
-
+                                                                
+                                "echo starting setupCfgFileVariables.pl",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref" : "AWS::Region" }
+                                                ]
+                                        ]
+                                },
+                                "echo setupCfgFileVariables.pl has completed",
+                                                        
                                 "echo starting install_hpcc.sh",
-                                "~ec2-user/install_hpcc.sh",
-                                "echo install_hpcc.sh has completed"                            ]
+                                "/home/ec2-user/install_hpcc.sh",
+                                "echo install_hpcc.sh has completed"
+                                ]
                         ]
                     }
                 }
@@ -681,6 +723,16 @@
                           {
                                 "Key" : "roxienodes",
                                 "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "UserNameAndPassword",
+                                "Value" : {"Ref" : "UserNameAndPassword" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "HPCCPlatform",
+                                "Value" : {"Ref" : "HPCCPlatform" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
@@ -843,10 +895,6 @@
                                 "echo starting setup_zz_zNxlarge_disks.pl",
                                 "/home/ec2-user/setup_zz_zNxlarge_disks.pl",
                                 "echo setup_zz_zNxlarge_disks.pl has completed",
-                                                        
-                                "echo starting install_hpcc.sh",
-                                "/home/ec2-user/install_hpcc.sh",
-                                "echo install_hpcc.sh has completed",
                                                                 
                                 "echo starting setupCfgFileVariables.pl",
                                 {
@@ -859,6 +907,10 @@
                                         ]
                                 },
                                 "echo setupCfgFileVariables.pl has completed",
+                                                        
+                                "echo starting install_hpcc.sh",
+                                "/home/ec2-user/install_hpcc.sh",
+                                "echo install_hpcc.sh has completed",
                                                         
                                 "echo starting getPublicAndPrivateIps.pl",
                                 "/home/ec2-user/getPublicAndPrivateIps.pl",
