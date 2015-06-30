@@ -12,8 +12,8 @@ R CMD BATCH installR.r
 #install hpcc
 mkdir hpcc
 cd hpcc
-echo "wget http://cdn.hpccsystems.com/releases/CE-Candidate-5.0.0/bin/platform/$hpcc_platform"
-wget http://cdn.hpccsystems.com/releases/CE-Candidate-5.0.0/bin/platform/$hpcc_platform
+echo "wget $hpcc_platform"
+wget $hpcc_platform
 
 echo "rpm -iv --nodeps $hpcc_platform"
 rpm -iv --nodeps $hpcc_platform

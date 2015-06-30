@@ -13,6 +13,7 @@ $DefaultValuesOfCfgVariables{'roxienodes'}=0;
 $DefaultValuesOfCfgVariables{'supportnodes'}=1;
 $DefaultValuesOfCfgVariables{'non_support_instances'}=1;
 $DefaultValuesOfCfgVariables{'UserNameAndPassword'}='';
+$DefaultValuesOfCfgVariables{'HPCCPlatform'}='HPCC-Platform-5.0.0-3';
 
 #-----------------------------------------------------------------------------
 # Get the most recent stack name (we will assume this is the one to work with)
@@ -149,6 +150,17 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
       print OUT "system_username=$username\n";
       print "DEBUG: system_password=$password\n";
       print OUT "system_password=$password\n";
+   }
+   elsif ( $cfgvar eq 'HPCCPlatform' ){
+      my $platformpath="http://cdn.hpccsystems.com/releases/CE-Candidate-<base_version>/bin/platform";   
+      my $platform="hpccsystems-platform_community-with-plugins-<version>.el6.x86_64.rpm";   
+      my $version = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^hpcc-platform-(.+)$/i;
+      my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
+      $platformpath =~ s/<base_version>/$base_version/;
+      $platform =~ s/<version>/$version/;
+      my $hpcc_platform="$platformpath/$platform";
+      print "DEBUG: hpcc_platform=$hpcc_platform\n";
+      print OUT "hpcc_platform=$hpcc_platform\n";
    }
    else{
       print "DEBUG: $cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
