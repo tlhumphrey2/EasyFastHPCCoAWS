@@ -1,5 +1,4 @@
 {
-    "Description" : "Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
     "Description" : "20150604 added: Make s3 bucket that contains all scripts a parameter",
     "Description" : "20150604 added: AMI should be selected automatically depending on region.",
     "Description" : "20150609 added: Support for ROXIE so ROXIEs are created on different instances than those having THOR slave nodes.",
@@ -11,6 +10,7 @@
     "Description" : "      Plus, have code that mounts bucket to dropzone if bucket name is given.",
     "Description" : "Need: Make a different template that uses EBS volumes instead of SSD",
     "Description" : "Need: Add descriptions of the various resources.",
+    "Description" : "Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
 
     "Parameters" : {
 
@@ -18,7 +18,8 @@
             "Description" : "The version of the HPCC Platform to install.",
             "AllowedValues" : [
                 "HPCC-Platform-5.0.0-3",
-                "HPCC-Platform-5.0.16-1"
+                "HPCC-Platform-5.0.16-1",
+                "HPCC-Platform-5.2.2-1"
                 ],
             "Default" : "HPCC-Platform-5.0.0-3",
             "Type" : "String"
@@ -38,7 +39,7 @@
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "1"
+            "Default" : "6"
         },
 
         "NumberOfRoxieNodes" : {
@@ -50,7 +51,7 @@
         "NumberOfSlavesPerNode" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "3"
+            "Default" : "12"
         },
 
         "MasterInstanceType" : {
@@ -63,7 +64,7 @@
                 "d2.2xlarge",
                 "d2.4xlarge"
                 ],
-            "Default" : "c3.2xlarge",
+            "Default" : "d2.4xlarge",
             "Type" : "String"
         },
 
@@ -78,7 +79,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "c3.2xlarge",
+            "Default" : "d2.8xlarge",
             "Type" : "String"
         },
 
@@ -93,7 +94,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "c3.2xlarge",
+            "Default" : "d2.4xlarge",
             "Type" : "String"
         },
 

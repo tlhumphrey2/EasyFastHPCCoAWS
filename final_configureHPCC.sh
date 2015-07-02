@@ -16,26 +16,34 @@ fi
 masterMemTotal=`bash /home/ec2-user/getPhysicalMemory.sh`
 echo " masterMemTotal=\"$masterMemTotal\""
 
-SlavePublicIP=$(tail -2 /home/ec2-user/public_ips.txt|head -1)
+SlavePublicIP=$(head -2 /home/ec2-user/public_ips.txt|tail -1)
 slaveMemTotal0=$(ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$SlavePublicIP bash /home/ec2-user/getPhysicalMemory.sh)
 slaveMemTotal=`echo $slaveMemTotal0|sed "s/.$//"`
 echo " slaveMemTotal=\"$slaveMemTotal\""
 
 # So we change globalMemorySize and masterMemorySize when the master and slave's memory aren't the same and
 #  when slave's memory is at least 10 gb and master's memory size is at least 2 gb.
-MinLargeSlaveMemory=10000000000
-HalfGB=500000000
-OneGB=1000000000
-TwoGB=2000000000
+OneMB=1048576
+HalfGB=536870912
+OneGB=1073741824
+TwoGB=2147483648
+
+# 10 GB = 10737418240
+MinLargeSlaveMemory=10737418240
+
 memory_override=''
 if [ $masterMemTotal -ne $slaveMemTotal ] && [ $slaveMemTotal -gt $MinLargeSlaveMemory ] && [ $masterMemTotal -ge $TwoGB ]
 then
-   masterMemorySize=$(echo $masterMemTotal $OneGB| awk '{printf "%.0f\n",($1-$2)/1000000}')
-   globalMemorySize=$(echo $slaveMemTotal $OneGB $slavesPerNode $HalfGB| awk '{printf "%.0f\n",((($1 - $2)/$3)-$4)/1000000}')
+   # masterMemorySize = ($masterMemTotal - $OneGB)/$OneMB
+   masterMemorySize=$(echo $masterMemTotal $OneGB $OneMB| awk '{printf "%.0f\n",($1-$2)/$3}')
+
+   # globalMemorySize = ((($slaveMemTotal - $OneGB)/$slavesPerNode)-$HalfGB)/$OneMB
+   globalMemorySize=$(echo $slaveMemTotal $OneGB $slavesPerNode $HalfGB $OneMB| awk '{printf "%.0f\n",((($1 - $2)/$3)-$4)/$5}')
    echo "masterMemorySize=\"$masterMemorySize\", globalMemorySize=\"$globalMemorySize\""
    master_override="-override thor,@masterMemorySize,$masterMemorySize"
    slave_override="-override thor,@globalMemorySize,$globalMemorySize"
-   memory_override=" $master_override $slave_override"
+   heap_override="-override thor,@heapUseHugePages,true"
+   memory_override=" $master_override $slave_override $heap_override"
 fi
 
 envgen=/opt/HPCCSystems/sbin/envgen;

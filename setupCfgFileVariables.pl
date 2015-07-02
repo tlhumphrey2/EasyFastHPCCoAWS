@@ -153,12 +153,14 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
    }
    elsif ( $cfgvar eq 'HPCCPlatform' ){
       my $platformpath="http://cdn.hpccsystems.com/releases/CE-Candidate-<base_version>/bin/platform";   
-      my $platform="hpccsystems-platform_community-with-plugins-<version>.el6.x86_64.rpm";   
+      my $platformBefore5_2="hpccsystems-platform_community-with-plugins-<version>.el6.x86_64.rpm";# Has underscore between platform and community  
+      my $platformAfter5_2= "hpccsystems-platform-community-with-plugins_<version>.el6.x86_64.rpm";# Has dash between platform and community   
       my $version = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^hpcc-platform-(.+)$/i;
       my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
       $platformpath =~ s/<base_version>/$base_version/;
-      $platform =~ s/<version>/$version/;
-      my $hpcc_platform="$platformpath/$platform";
+      $platformBefore5_2 =~ s/<version>/$version/;
+      $platformAfter5_2 =~ s/<version>/$version/;
+      my $hpcc_platform=( $version =~ /^5.2/ )? "$platformpath/$platformAfter5_2" : "$platformpath/$platformBefore5_2";
       print "DEBUG: hpcc_platform=$hpcc_platform\n";
       print OUT "hpcc_platform=$hpcc_platform\n";
    }

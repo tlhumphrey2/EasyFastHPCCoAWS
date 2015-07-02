@@ -1,0 +1,82 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PowerUserAccess",
+            "Effect": "Allow",
+            "Action": [
+                "elasticloadbalancing:*",
+                "autoscaling:*",
+                "sdb:*",
+                "swf:*",
+                "sqs:*",
+                "sns:*",
+                "ses:*",
+                "s3:*",
+                "route53:*",
+                "redshift:*",
+                "rds:*",
+                "glacier:*",
+                "kinesis:*",
+                "elastictranscoder:*",
+                "elasticmapreduce:*",
+                "ec2:*",
+                "dynamodb:*",
+                "cloudwatch:*",
+                "cloudsearch:*",
+               "cloudfront:*",
+                "cloudformation:*",
+                "appstream:*",
+                "aws-portal:*",
+                "elasticache:*",
+                "elasticbeanstalk:*",
+                "logs:*",
+                "trustedadvisor:*",
+                "codedeploy:*",
+                "opsworks:*",
+                "workspaces:*",
+                "ds:*",
+                "workdocs:*",
+                "lamdba:*"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowUserToUseIAMRoles",
+            "Effect": "Allow",
+            "Action": [
+                "iam:AttachRolePolicy",
+                "iam:AddRoleToInstanceProfile",
+                "iam:CreateInstanceProfile",
+                "iam:DeleteRolePolicy",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:DeleteInstanceProfile",
+                "iam:GetInstanceProfile",
+                "iam:GetRole",
+                "iam:GetRolePolicy",
+                "iam:ListRoles",
+                "iam:ListInstanceProfiles",
+                "iam:ListInstanceProfilesForRole",
+                "iam:ListRolePolicies",
+                "iam:PassRole",
+                "iam:PutRolePolicy",
+                "iam:RemoveRoleFromInstanceProfile"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Sid": "AllowUsersToManageServerCertificates",
+            "Effect": "Allow",
+            "Action": [
+                "iam:*ServerCertificate*"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}
+
