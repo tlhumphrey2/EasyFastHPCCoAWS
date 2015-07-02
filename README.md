@@ -1,4 +1,4 @@
-2015/06/25 Added htpasswd authentication.<br />  
+2015/06/25 Added htpasswd authentication.<br />
 2015/06/29 added Can select HPCC Platform<br />  
 
 The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.
