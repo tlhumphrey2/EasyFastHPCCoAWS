@@ -1,6 +1,7 @@
 2015/06/25 Added htpasswd authentication.<br />
 2015/06/29 added Can select HPCC Platform<br />  
 2015/07/01 Fixed bug in calculation of globalMemorySize (in finalConfigureHPCC.sh)<br />  
+2015/07/06 Fixed bug in setupCfgFileVariables.pl so path to HPCC Platform is correct when platform is 5.2 and above.<br />  
 The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.
 
 # Easy Setup of Fast HPCC System on AWS
