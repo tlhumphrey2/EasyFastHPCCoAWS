@@ -23,8 +23,8 @@ This document provides details for accomplishing the above two-step process.
 
 Here is a summary of this process:
 
-1. 1.Make an S3 bucket to copy scripts and ssh pem file.
-2. 2.Copy scripts and ssh pem file into created S3 bucket.
+1. Make an S3 bucket to copy scripts and ssh pem file.
+2. Copy scripts and ssh pem file into created S3 bucket.
 
 You need s3cmd installed on your Windows machine. Installation instructions are given in Appendix A.
 
