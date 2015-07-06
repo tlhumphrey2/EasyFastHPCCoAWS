@@ -23,8 +23,8 @@ This document provides details for accomplishing the above two-step process.
 
 Here is a summary of this process:
 
-1. 1.Make an S3 bucket to copy scripts and ssh pem file.
-2. 2.Copy scripts and ssh pem file into created S3 bucket.
+1. Make an S3 bucket to copy scripts and ssh pem file.
+2. Copy scripts and ssh pem file into created S3 bucket.
 
 You need s3cmd installed on your Windows machine. Installation instructions are given in Appendix A.
 
@@ -55,10 +55,10 @@ You can check to see if the scripts and ssh pem file are in the s3 bucket using 
 
 Here is a summary of this process:
 
-1. 1.Navigate to the CloudFormation web page.
-2. 2.Enter a Unique Name for the stack being created and give a path to the HPCC CF template.
-3. 3.Fill in the HPCC CF template parameters, e.g. name of pem file, placement group, etc.
-4. 4.Click the "Create" button to start the process of creating the HPCC System on AWS.
+1. Navigate to the CloudFormation web page.
+2. Enter a Unique Name for the stack being created and give a path to the HPCC CF template.
+3. Fill in the HPCC CF template parameters, e.g. name of pem file, placement group, etc.
+4. Click the "Create" button to start the process of creating the HPCC System on AWS.
 
 ## 3.1 Navigate to CloudFormation Web Page
 
