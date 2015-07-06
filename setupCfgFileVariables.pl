@@ -157,10 +157,20 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
       my $platformAfter5_2= "hpccsystems-platform-community-with-plugins_<version>.el6.x86_64.rpm";# Has dash between platform and community   
       my $version = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^hpcc-platform-(.+)$/i;
       my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
+      my $First2Digits = $1 if $base_version =~ /^(\d+\.\d+)/;
+      print "DEBUG: First2Digits=\"$First2Digits\"\n";
       $platformpath =~ s/<base_version>/$base_version/;
       $platformBefore5_2 =~ s/<version>/$version/;
       $platformAfter5_2 =~ s/<version>/$version/;
-      my $hpcc_platform=( $version =~ /^5.2/ )? "$platformpath/$platformAfter5_2" : "$platformpath/$platformBefore5_2";
+      my $hpcc_platform;
+      if ( $First2Digits >= 5.2 ){
+         $hpcc_platform= "$platformpath/$platformAfter5_2";
+	 print "DEBUG: GT 5.2 hpcc_platform=\"$hpcc_platform\"\n";
+      }
+      else{
+         $hpcc_platform= "$platformpath/$platformBefore5_2";
+	 print "DEBUG: LT 5.2 hpcc_platform=\"$hpcc_platform\"\n";
+      }
       print "DEBUG: hpcc_platform=$hpcc_platform\n";
       print OUT "hpcc_platform=$hpcc_platform\n";
    }
