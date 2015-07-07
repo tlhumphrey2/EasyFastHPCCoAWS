@@ -16,8 +16,8 @@ fi
 masterMemTotal=`bash /home/ec2-user/getPhysicalMemory.sh`
 echo " masterMemTotal=\"$masterMemTotal\""
 
-SlavePublicIP=$(head -2 /home/ec2-user/public_ips.txt|tail -1)
-slaveMemTotal0=$(ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$SlavePublicIP bash /home/ec2-user/getPhysicalMemory.sh)
+SlavePrivateIP=$(head -2 /home/ec2-user/private_ips.txt|tail -1)
+slaveMemTotal0=$(ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$SlavePrivateIP bash /home/ec2-user/getPhysicalMemory.sh)
 slaveMemTotal=`echo $slaveMemTotal0|sed "s/.$//"`
 echo " slaveMemTotal=\"$slaveMemTotal\""
 
@@ -73,7 +73,7 @@ fi
 
 # Copy the newly created environment file  to /etc/HPCCSystems on all nodes of the THOR
 out_environment_file=/etc/HPCCSystems/environment.xml
-master_ip=`head -1 /home/ec2-user/public_ips.txt`
+master_ip=`head -1 /home/ec2-user/private_ips.txt`
 echo "ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$master_ip \"sudo /opt/HPCCSystems/sbin/hpcc-push.sh -s $created_environment_file -t $out_environment_file\""
 ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$master_ip "sudo /opt/HPCCSystems/sbin/hpcc-push.sh -s $created_environment_file -t $out_environment_file"
 
