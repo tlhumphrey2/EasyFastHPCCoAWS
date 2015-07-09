@@ -10,7 +10,16 @@ R CMD BATCH installR.r
 
 #install blas
 echo "install blas"
-yum install atlas atlas-devel lapack-devel blas-devel
+echo "install atlas"
+yum -y install atlas
+echo "install atlas-devel"
+yum -y install atlas-devel
+echo "install lapack-devel"
+yum -y install lapack-devel
+echo "install blas-devel"
+yum -y install blas-devel
+
+echo "symbolic links to blas libraries"
 ln -s /usr/lib64/libblas.so /usr/lib/libblas.so
 ln -s /usr/lib64/atlas/libcblas.so /usr/lib/libcblas.so
 
