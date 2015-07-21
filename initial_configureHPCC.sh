@@ -10,18 +10,18 @@ created_environment_file="${path}initial_$basename"
 
 slavesPerNode=1
 
-set2falseRoxieMultiCaseEnabled=''
+set2falseRoxieMulticastEnabled=''
 if [ $roxienodes -gt 0 ]
 then
-  set2falseRoxieMultiCaseEnabled=' -override roxie,@roxieMultiCastEnabled,false'
+  set2falseRoxieMulticastEnabled=' -override roxie,@roxieMulticastEnabled,false'
 fi
 
 envgen=/opt/HPCCSystems/sbin/envgen;
 
 # Make new environment.xml file for newly configured HPCC System.
-echo "$envgen -env $created_environment_file $set2falseRoxieMultiCaseEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes -slavesPerNode $slavesPerNode -roxieondemand 1"
+echo "$envgen -env $created_environment_file $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes -slavesPerNode $slavesPerNode -roxieondemand 1"
 
-$envgen  -env $created_environment_file $set2falseRoxieMultiCaseEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
+$envgen  -env $created_environment_file $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
 echo "Completed $envgen"
 
 # Copy the newly created environment file  to /etc/HPCCSystems on all nodes of the THOR
