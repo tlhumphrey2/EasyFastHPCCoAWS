@@ -10,6 +10,11 @@ created_environment_file="${path}initial_$basename"
 
 slavesPerNode=1
 
+if [ $non_support_instances -eq 0 ]
+then
+  slavesPerNode=0
+fi
+
 set2falseRoxieMulticastEnabled=''
 if [ $roxienodes -gt 0 ]
 then
