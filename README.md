@@ -18,14 +18,9 @@ For these scripts to work, you must have in cfg_BestHPCC.sh the s3 access and se
 
 Table 1. S3cmd Configuration Parameters
 
-| Prompt | Your Response |
-| --- | --- |
-| Access key | Enter your AWS access key |
-| Secret key | Enter your AWS secret key |
-| Encryption password | Just hit enter, i.e. don't provide a password |
-| Path to GPG program | Enter the path where gpg was installed (my is C:\Program Files (x86)\GNU\GnuPG\pub\gpg.exe) |
-| Test access with supplied credentials | Enter yes (this assures you didn't make any mistakes when entering the above parameters) |
-| Save settings | Enter yes |
+| --- |
+| Access key |
+| Secret key |
 
 
 | S3_ACCESS_KEY=\<your s3 access key\> |
