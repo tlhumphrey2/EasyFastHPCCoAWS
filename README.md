@@ -4,6 +4,7 @@
 2015/07/06 Fixed bug in setupCfgFileVariables.pl so path to HPCC Platform is correct when platform is 5.2 and above.<br />  
 2015/07/07 Changed scripts to use private IPs instead of public.<br />  
 2015/07/08 In install_hpcc.sh, fixed yum installs of blas libraries.<br />  
+2015/08/03 Added code to copy, in parallel, files to/from s3 buckets from/to slave thor nodes. Plus, made changes to speed up deployment process<br />  
 The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.
 
 # Easy Setup of Fast HPCC System on AWS
