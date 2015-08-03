@@ -10,7 +10,7 @@
 
 There are two scripts that should be ran on the master instance:
 
-1. cp2S3FromMasterAndAllSlaves.pl <bucket to copy to> ---- Use this script to copy files from master and all slave instances (the work is done in parallel) to an S3 bucket. Do this just before shutting down the HPCC System. This script takes one command line argument -- the name of the S3 bucket to copy to, e.g. s3://hpcc-example-back.
+1. cp2S3FromMasterAndAllSlaves.pl <bucket to copy to> ---- Use this script to copy files from master and all slave instances to an S3 bucket (the work is done in parallel). Do this just before shutting down the HPCC System. This script takes one command line argument -- the name of the S3 bucket to copy to, e.g. s3://hpcc-example-back.
 2. cpFromS3ToMasterAndAllSlaves.pl <bucket to copy from> ---- Use this script to copy files from an S3 bucket to the master and all slave instances (the work is done in parallel). Do this just after the HPCC System is completed deployed. This script takes one command line argument -- the name of the S3 bucket to copy from, e.g. s3://hpcc-example-back.
 
 For these scripts to work, you must have in cfg_BestHPCC.sh your s3 access and secret keys. These are:
