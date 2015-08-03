@@ -6,6 +6,8 @@
     "Description" : "20150617 fixed: AMI id for eu-central-1 was incorrect. Fixed it.",
     "Description" : "20150625 added: Add authentication, i.e. user-id and password",
     "Description" : "20150629 added: We need to give user other choices for HPCC Platform (current set in cfg_BestHPCC.sh to 5.0.0-3)",
+    "Description" : "20150724 added: Added scripts that will copy in parallel THOR slave file parts and their metadata file to S3",
+    "Description" : "20150730 added: Fixed JIRA HPCC-13855. Now we only need to start the HPCC System one time AND we only need to envgen once. Therefore configure and deploy is faster",
     "Description" : "Need: Have parameters for data s3 bucket access and secret keys and for data s3 bucket name.",
     "Description" : "      Plus, have code that mounts bucket to dropzone if bucket name is given.",
     "Description" : "Need: Make a different template that uses EBS volumes instead of SSD",
@@ -19,15 +21,16 @@
             "AllowedValues" : [
                 "HPCC-Platform-5.0.0-3",
                 "HPCC-Platform-5.0.16-1",
-                "HPCC-Platform-5.2.2-1"
+                "HPCC-Platform-5.2.2-1",
+                "HPCC-Platform-5.2.4-1"
                 ],
-            "Default" : "HPCC-Platform-5.0.0-3",
+            "Default" : "HPCC-Platform-5.2.4-1",
             "Type" : "String"
         },
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
-            "Default" : ""
+            "Default" : "tlh_keys_us_west_2"
         },
 
         "UserNameAndPassword" : {
@@ -39,7 +42,7 @@
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "6"
+            "Default" : "1"
         },
 
         "NumberOfRoxieNodes" : {
@@ -51,26 +54,31 @@
         "NumberOfSlavesPerNode" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "12"
+            "Default" : "3"
         },
 
         "MasterInstanceType" : {
             "Description" : "HPCC Thor Master EC2 instance type",
             "AllowedValues" : [
+                "c3.large",
+                "c3.xlarge",
                 "c3.2xlarge",
                 "c3.4xlarge",
                 "c3.8xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
-                "d2.4xlarge"
+                "d2.4xlarge",
+                "d2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.xlarge",
             "Type" : "String"
         },
 
         "SlaveInstanceType" : {
             "Description" : "HPCC Thor Slave EC2 instance type",
             "AllowedValues" : [
+                "c3.large",
+                "c3.xlarge",
                 "c3.2xlarge",
                 "c3.4xlarge",
                 "c4.8xlarge",
@@ -79,13 +87,15 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.8xlarge",
+            "Default" : "c3.xlarge",
             "Type" : "String"
         },
 
         "RoxieInstanceType" : {
             "Description" : "HPCC Roxie EC2 instance type",
             "AllowedValues" : [
+                "c3.large",
+                "c3.xlarge",
                 "c3.2xlarge",
                 "c3.4xlarge",
                 "c4.8xlarge",
@@ -94,20 +104,20 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.xlarge",
             "Type" : "String"
         },
 
         "ScriptsS3BucketFolder" : {
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
-            "Default" : ""
+            "Default" : "s3://BestHoA/instance_files"
         },
 
         "HPCCPlacementGroup" : {
             "Type" : "String",
             "Description" : "Placement Group using by HPCC System",
-            "Default" : ""
+            "Default" : "pg-tlh-best"
         }
     },
 
@@ -468,25 +478,26 @@
                                 "chmod 755 /home/ec2-user/*.sh",
                                 "chmod 755 /home/ec2-user/*.pl",
  
-                                "echo starting setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
                                 "~ec2-user/setup_zz_zNxlarge_disks.pl",
-                                "echo setup_zz_zNxlarge_disks.pl has completed",
+                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
                                                                 
-                                "echo starting setupCfgFileVariables.pl",
+                                "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
                                                  "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref": "AWS::StackName" }, 
                                                  { "Ref" : "AWS::Region" }
                                                 ]
                                         ]
                                 },
-                                "echo setupCfgFileVariables.pl has completed",
+                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
                                                         
-                                "echo starting install_hpcc.sh",
+                                "echo SCRIPT: starting install_hpcc.sh",
                                 "/home/ec2-user/install_hpcc.sh",
-                                "echo install_hpcc.sh has completed"
+                                "echo SCRIPT: install_hpcc.sh has completed"
                                 ]
                         ]
                     }
@@ -665,25 +676,26 @@
                                 "chmod 755 /home/ec2-user/*.sh",
                                 "chmod 755 /home/ec2-user/*.pl",
  
-                                "echo starting setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
                                 "~ec2-user/setup_zz_zNxlarge_disks.pl",
-                                "echo setup_zz_zNxlarge_disks.pl has completed",
+                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
                                                                 
-                                "echo starting setupCfgFileVariables.pl",
+                                "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
                                                  "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref": "AWS::StackName" }, 
                                                  { "Ref" : "AWS::Region" }
                                                 ]
                                         ]
                                 },
-                                "echo setupCfgFileVariables.pl has completed",
+                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
                                                         
-                                "echo starting install_hpcc.sh",
+                                "echo SCRIPT: starting install_hpcc.sh",
                                 "/home/ec2-user/install_hpcc.sh",
-                                "echo install_hpcc.sh has completed"
+                                "echo SCRIPT: install_hpcc.sh has completed"
                                 ]
                         ]
                     }
@@ -879,7 +891,7 @@
                                 "yum -y update --security\n",
                                 "yum -y update aws-cfn-bootstrap\n",
                                 "yum -y install aws-cli",
-                                {
+                               {
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
@@ -893,50 +905,40 @@
                                 "chmod 755 /home/ec2-user/*.sh",
                                 "chmod 755 /home/ec2-user/*.pl",
 
-                                "echo starting setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
                                 "/home/ec2-user/setup_zz_zNxlarge_disks.pl",
-                                "echo setup_zz_zNxlarge_disks.pl has completed",
+                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
                                                                 
-                                "echo starting setupCfgFileVariables.pl",
+                                "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
                                                  "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref": "AWS::StackName" }, 
                                                  { "Ref" : "AWS::Region" }
                                                 ]
                                         ]
                                 },
-                                "echo setupCfgFileVariables.pl has completed",
+                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
                                                         
-                                "echo starting install_hpcc.sh",
+                                "echo SCRIPT: starting install_hpcc.sh",
                                 "/home/ec2-user/install_hpcc.sh",
-                                "echo install_hpcc.sh has completed",
+                                "echo SCRIPT: install_hpcc.sh has completed",
                                                         
-                                "echo starting getPublicAndPrivateIps.pl",
+                                "echo SCRIPT: starting getPublicAndPrivateIps.pl",
                                 "/home/ec2-user/getPublicAndPrivateIps.pl",
-                                "echo getPublicAndPrivateIps.pl has completed",
-                                                        
-                                "echo starting initial_configureHPCC.sh",
-                                "/home/ec2-user/initial_configureHPCC.sh",
-                                "echo initial_configureHPCC.sh has completed",
+                                "echo SCRIPT: getPublicAndPrivateIps.pl has completed",
 
-                                "echo starting startHPCCOnAllInstances.pl",
-                                "/home/ec2-user/startHPCCOnAllInstances.pl",
-                                "echo startHPCCOnAllInstances.pl has completed",
-
-                                "echo starting stopHPCCOnAllInstances.pl",
-                                "/home/ec2-user/stopHPCCOnAllInstances.pl",
-                                "echo stopHPCCOnAllInstances.pl has completed",
-
-                                "echo starting final_configureHPCC.sh",
+                                "echo SCRIPT: starting final_configureHPCC.sh",
                                 "/home/ec2-user/final_configureHPCC.sh",
-                                "echo final_configureHPCC.sh has completed",
+                                "echo SCRIPT: final_configureHPCC.sh has completed",
 
-                                "echo starting startHPCCOnAllInstances.pl",
+                                "echo SCRIPT: starting startHPCCOnAllInstances.pl",
                                 "/home/ec2-user/startHPCCOnAllInstances.pl",
-                                "echo startHPCCOnAllInstances.pl has completed",
-                                "echo 'Signal stack that setup of HPCC System is complete.'",
+                                "echo SCRIPT: startHPCCOnAllInstances.pl has completed",
+
+                                "echo SCRIPT: 'Signal stack that setup of HPCC System is complete.'",
                                 {
                                         "Fn::Join" : [
                                                 " ", 
@@ -949,7 +951,7 @@
                                                 ]
                                         ]
                                 },
-                                "echo 'Done signaling stack that setup of HPCC System has completed.'"
+                                "echo SCRIPT: 'Done signaling stack that setup of HPCC System has completed.'"
                             ]
                         ]
                     }
