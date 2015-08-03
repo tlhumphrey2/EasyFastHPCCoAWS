@@ -21,7 +21,7 @@ For these scripts to work, you must have in cfg_BestHPCC.sh your s3 access and s
 | S3_ACCESS_KEY= | \<your access key\> |
 | S3_SECRET_KEY= | \<your secret key\> |
 
-
+<br><br>
 **The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.**
 
 # Easy Setup of Fast HPCC System on AWS
