@@ -9,7 +9,6 @@ yum install -y R-devel
 R CMD BATCH installR.r
 
 #install blas
-echo "install blas"
 echo "install atlas"
 yum -y install atlas
 echo "install atlas-devel"
@@ -23,11 +22,15 @@ echo "symbolic links to blas libraries"
 ln -s /usr/lib64/libblas.so /usr/lib/libblas.so
 ln -s /usr/lib64/atlas/libcblas.so /usr/lib/libcblas.so
 
-#install hpcc
-echo "install hpcc"
-
+# Instantiate configuration variables
+echo "Instantiate configuration variables (need phcc_platform)"
 . ~ec2-user/cfg_BestHPCC.sh
 
+# Install s3cmd
+~ec2-user/install_s3cmd.sh
+
+#install hpcc
+echo "install hpcc"
 mkdir hpcc
 cd hpcc
 echo "wget $hpcc_platform"

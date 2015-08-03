@@ -4,6 +4,9 @@
 
 echo "slavesPerNode=\"$slavesPerNode\""
 
+#----------------------------------------------------------------------------------
+# If there are ROXIEs in the configuration then set roxieMulticastEnabled to false.
+#----------------------------------------------------------------------------------
 set2falseRoxieMulticastEnabled=''
 if [ $roxienodes -gt 0 ]
 then
@@ -13,11 +16,14 @@ then
   perl /home/ec2-user/updateEnvGenConfigurationForHPCC.pl
 fi
 
+#--------------------------------------------------------------------------------------------------------------------------------
+# Override globalMemorySize and masterMemorySize if master and slave memory sizes are different and their sizes are large enough.
+#--------------------------------------------------------------------------------------------------------------------------------
 masterMemTotal=`bash /home/ec2-user/getPhysicalMemory.sh`
 echo " masterMemTotal=\"$masterMemTotal\""
 
-SlavePrivateIP=$(head -2 /home/ec2-user/private_ips.txt|tail -1)
-slaveMemTotal0=$(ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$SlavePrivateIP bash /home/ec2-user/getPhysicalMemory.sh)
+SlavePublicIP=$(head -2 /home/ec2-user/public_ips.txt|tail -1)
+slaveMemTotal0=$(ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$SlavePublicIP bash /home/ec2-user/getPhysicalMemory.sh)
 slaveMemTotal=`echo $slaveMemTotal0|sed "s/.$//"`
 echo " slaveMemTotal=\"$slaveMemTotal\""
 
@@ -46,11 +52,19 @@ then
    memory_override=" $master_override $slave_override $heap_override"
 fi
 
+#----------------------------------------------------------------------------------
+# Generate a new environment.xml file.
+#----------------------------------------------------------------------------------
 envgen=/opt/HPCCSystems/sbin/envgen;
 
 # Make new environment.xml file for newly configured HPCC System.
 echo "$envgen -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes -slavesPerNode $slavesPerNode -roxieondemand 1"
 $envgen  -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
+
+#----------------------------------------------------------------------------------
+# If username and password is needed for system then do the follow.
+#----------------------------------------------------------------------------------
+master_ip=`head -1 /home/ec2-user/private_ips.txt`
 
 # IF username and password given THEN setup so system requires them
 if  [ -n "$system_username" ] && [ -n "$system_password" ]
@@ -71,11 +85,24 @@ then
   cp ~/environment_with_htpasswd_enabled.xml $created_environment_file
 fi
 
-# Copy the newly created environment file  to /etc/HPCCSystems on all nodes of the THOR
+#----------------------------------------------------------------------------------
+# Make sure hpcc platform is installed on all instance BEFORE doing hpcc-push.
+#----------------------------------------------------------------------------------
+# Before using hpcc-push.sh to copy new environment.xml file, $created_environment_file, to all instances, make
+#  sure the hpcc platform is installed on all instances
+perl /home/ec2-user/loopUntilHPCCPlatformInstalledOnAllInstances.pl
+
+# Change new environment.xml file's ownership to hpcc:hpcc
+echo "chown hpcc:hpcc $created_environment_file"
+chown hpcc:hpcc $created_environment_file
+
+#----------------------------------------------------------------------------------
+# Use hpcc-push to push new environment.xml file to all instances.
+#----------------------------------------------------------------------------------
+# THIS CODE IS MY VERSION OF hpcc-push
 out_environment_file=/etc/HPCCSystems/environment.xml
-master_ip=`head -1 /home/ec2-user/private_ips.txt`
-echo "ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$master_ip \"sudo /opt/HPCCSystems/sbin/hpcc-push.sh -s $created_environment_file -t $out_environment_file\""
-ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$master_ip "sudo /opt/HPCCSystems/sbin/hpcc-push.sh -s $created_environment_file -t $out_environment_file"
+echo "perl /home/ec2-user/tlh_hpcc-push.pl $created_environment_file $out_environment_file"
+perl /home/ec2-user/tlh_hpcc-push.pl $created_environment_file $out_environment_file
 
 if [ $slavesPerNode -ne 1 ]
 then

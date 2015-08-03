@@ -10,11 +10,6 @@ created_environment_file="${path}initial_$basename"
 
 slavesPerNode=1
 
-if [ $non_support_instances -eq 0 ]
-then
-  slavesPerNode=0
-fi
-
 set2falseRoxieMulticastEnabled=''
 if [ $roxienodes -gt 0 ]
 then
@@ -29,9 +24,15 @@ echo "$envgen -env $created_environment_file $set2falseRoxieMulticastEnabled -ov
 $envgen  -env $created_environment_file $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
 echo "Completed $envgen"
 
-# Copy the newly created environment file  to /etc/HPCCSystems on all nodes of the THOR
+# Before using hpcc-push.sh to copy new environment.xml file, $created_environment_file, to all instances, make
+#  sure the hpcc platform is installed on all instances
+perl /home/ec2-user/loopUntilHPCCPlatformInstalledOnAllInstances.pl
+
+echo "chown hpcc:hpcc $created_environment_file"
+chown hpcc:hpcc $created_environment_file
+
 out_environment_file=/etc/HPCCSystems/environment.xml
-master_ip=`head -1 /home/ec2-user/private_ips.txt`
-echo "ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$master_ip \"sudo /opt/HPCCSystems/sbin/hpcc-push.sh -s $created_environment_file -t $out_environment_file\""
-ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$master_ip "sudo /opt/HPCCSystems/sbin/hpcc-push.sh -s $created_environment_file -t $out_environment_file"
+echo "perl /home/ec2-user/tlh_hpcc-push.pl $created_environment_file $out_environment_file"
+perl /home/ec2-user/tlh_hpcc-push.pl $created_environment_file $out_environment_file
+
 echo "Completed hpcc-push.sh"
