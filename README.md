@@ -4,7 +4,15 @@
 2015/07/06 Fixed bug in setupCfgFileVariables.pl so path to HPCC Platform is correct when platform is 5.2 and above.<br />  
 2015/07/07 Changed scripts to use private IPs instead of public.<br />  
 2015/07/08 In install_hpcc.sh, fixed yum installs of blas libraries.<br />  
-2015/08/03 Added code to copy, in parallel, files to/from s3 buckets from/to slave thor nodes. Plus, made changes to speed up deployment process<br />  
+2015/08/03 Added code to copy, in parallel, files to/from s3 buckets from/to slave thor nodes. Plus, made changes to speed up deployment process<br />
+
+# Brief Instructions for Using Copy from/to S3 Buckets Scripts.
+
+There are two script that should be ran on the master instance:
+1. cp2S3FromMasterAndAllSlaves.pl <bucket to copy to> ---- Use this script to copy files from master and all slave instances (the work in done in parallel) to an S3 bucket. Do this just before shutting down the HPCC System. This script takes one command line argument -- the name of the S3 bucket to copy to, e.g. s3://hpcc-example-back.
+2. cpFromS3ToMasterAndAllSlaves.pl <bucket to copy from> ---- Use this script to copy files from an S3 bucket to the master and all slave instances (the work in done in parallel). Do this just after the HPCC System is completed deployed. This script takes one command line argument -- the name of the S3 bucket to copy from, e.g. s3://hpcc-example-back.
+ 
+
 The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.
 
 # Easy Setup of Fast HPCC System on AWS
