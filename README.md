@@ -16,11 +16,11 @@ There are two scripts that should be ran on the master instance:
 For these scripts to work, you must have in cfg_BestHPCC.sh the s3 access and secret keys. These are:
 
 
-Table 1. S3cmd Configuration Parameters
-
-| --- |
-| Access key |
-| Secret key |
+| Tables        | Are           | Cool  |
+| ------------- |:-------------:| -----:|
+| col 3 is      | right-aligned | $1600 |
+| col 2 is      | centered      |   $12 |
+| zebra stripes | are neat      |    $1 |
 
 
 | S3_ACCESS_KEY=\<your s3 access key\> |
