@@ -16,16 +16,10 @@ There are two scripts that should be ran on the master instance:
 For these scripts to work, you must have in cfg_BestHPCC.sh the s3 access and secret keys. These are:
 
 
-| Tables        | Are           | Cool  |
-| ------------- |:-------------:| -----:|
-| col 3 is      | right-aligned | $1600 |
-| col 2 is      | centered      |   $12 |
-| zebra stripes | are neat      |    $1 |
-
-
-| S3_ACCESS_KEY=\<your s3 access key\> |
-| S3_SECRET_KEY=\<your s3 secret key\> |
-| --- |
+| Variable name  | Your Key            |
+| -------------  |:-------------------:|
+| S3_ACCESS_KEY= | \<your access key\> |
+| S3_SECRET_KEY= | \<your secret key\> |
 
 
 The following is a conversion to markdown of the EasyFastHPCCOnAWS.pdf that is in this repository.
