@@ -1,10 +1,10 @@
-2015/06/25 Added htpasswd authentication.<br />
-2015/06/29 added Can select HPCC Platform<br />  
-2015/07/01 Fixed bug in calculation of globalMemorySize (in finalConfigureHPCC.sh)<br />  
-2015/07/06 Fixed bug in setupCfgFileVariables.pl so path to HPCC Platform is correct when platform is 5.2 and above.<br />  
-2015/07/07 Changed scripts to use private IPs instead of public.<br />  
-2015/07/08 In install_hpcc.sh, fixed yum installs of blas libraries.<br />  
-2015/08/03 Added code to copy, in parallel, files to/from s3 buckets from/to slave thor nodes. Plus, made changes to speed up deployment process<br />
++ 2015/06/25 Added htpasswd authentication.
++ 2015/06/29 added Can select HPCC Platform.  
++ 2015/07/01 Fixed bug in calculation of globalMemorySize (in finalConfigureHPCC.sh)  
++ 2015/07/06 Fixed bug in setupCfgFileVariables.pl so path to HPCC Platform is correct when platform is 5.2 and above. 
++ 2015/07/07 Changed scripts to use private IPs instead of public.  
++ 2015/07/08 In install_hpcc.sh, fixed yum installs of blas libraries.  
++ 2015/08/03 Added code to copy, in parallel, files to/from s3 buckets from/to slave thor nodes. Plus, made changes to speed up deployment process
 
 ## Brief Instructions for Using Copy from/to S3 Buckets Scripts.
 
