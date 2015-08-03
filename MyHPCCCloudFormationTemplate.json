@@ -30,7 +30,7 @@
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
-            "Default" : "tlh_keys_us_west_2"
+            "Default" : ""
         },
 
         "UserNameAndPassword" : {
@@ -42,7 +42,7 @@
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "1"
+            "Default" : "6"
         },
 
         "NumberOfRoxieNodes" : {
@@ -54,7 +54,7 @@
         "NumberOfSlavesPerNode" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "3"
+            "Default" : "12"
         },
 
         "MasterInstanceType" : {
@@ -70,7 +70,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "c3.xlarge",
+            "Default" : "d2.4xlarge",
             "Type" : "String"
         },
 
@@ -87,7 +87,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "c3.xlarge",
+            "Default" : "d2.8xlarge",
             "Type" : "String"
         },
 
@@ -104,20 +104,20 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "c3.xlarge",
+            "Default" : "d2.4xlarge",
             "Type" : "String"
         },
 
         "ScriptsS3BucketFolder" : {
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
-            "Default" : "s3://BestHoA/instance_files"
+            "Default" : ""
         },
 
         "HPCCPlacementGroup" : {
             "Type" : "String",
             "Description" : "Placement Group using by HPCC System",
-            "Default" : "pg-tlh-best"
+            "Default" : ""
         }
     },
 

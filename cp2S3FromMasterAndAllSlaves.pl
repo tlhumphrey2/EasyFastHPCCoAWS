@@ -6,6 +6,12 @@ $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 require "$thisDir/getConfigurationFile.pl";
 require "$thisDir/common.pl";
 
+if ( scalar(@ARGV) > 0 ){
+  $ToS3Bucket=shift @ARGV;
+  $ToS3Bucket = "s3://$ToS3Bucket" if $ToS3Bucket !~ /^s3:\/\//i;
+  print "Input, as an argument, was ToS3Bucket=\"$ToS3Bucket\"\n";
+}
+
 #------------------------------
 # Get all private ips
 #------------------------------
@@ -17,6 +23,8 @@ while(<IN>){
    push @private_ips, $_;
 }
 close(IN);
+
+die "FATAL ERROR: $0. The environment variable, ToS3Bucket, does not have a value and it must. ToS3Bucket should have the name of the S3 bucket that files will be copied to, e.g. s3://hpcc-example-backup\n" if $ToS3Bucket =~ /^\s*$/;
 
 my $bucket_basename=$ToS3Bucket;
 $bucket_basename = "s3://$bucket_basename" if $bucket_basename !~ /^s3:\/\//;
