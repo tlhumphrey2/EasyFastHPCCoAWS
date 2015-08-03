@@ -2,7 +2,7 @@
 
 require "/home/ec2-user/getConfigurationFile.pl";
 
-# Get all private ips
+# Get all private_ips
 open(IN,$private_ips) || die "Can't open for input: \"$private_ips\"\n";
 while(<IN>){
    next if /^\s*$/;

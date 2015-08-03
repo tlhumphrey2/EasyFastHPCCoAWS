@@ -2,10 +2,12 @@
 
 require "/home/ec2-user/getConfigurationFile.pl";
 
-$region = $ARGV[0];
+$stackname = shift @ARGV;
+$region = shift @ARGV;
+print "Entering setupCfgFileVariables.pl. Inputted arguments are: stackname=\"$stackname\", region=\"$region\"\n";
 
 # Default values for some confuration variables
-$DefaultValuesOfCfgVariables{'stackname'}='';
+$DefaultValuesOfCfgVariables{'stackname'}=$stackname;
 $DefaultValuesOfCfgVariables{'region'}=$region;
 $DefaultValuesOfCfgVariables{'pem'}='';
 $DefaultValuesOfCfgVariables{'slavesPerNode'}=1;
@@ -14,54 +16,29 @@ $DefaultValuesOfCfgVariables{'supportnodes'}=1;
 $DefaultValuesOfCfgVariables{'non_support_instances'}=1;
 $DefaultValuesOfCfgVariables{'UserNameAndPassword'}='';
 $DefaultValuesOfCfgVariables{'HPCCPlatform'}='HPCC-Platform-5.0.0-3';
-
-#-----------------------------------------------------------------------------
-# Get the most recent stack name (we will assume this is the one to work with)
-#-----------------------------------------------------------------------------
-
-# Get the the launch time of the last instance launched
-$y=`aws ec2 describe-instances --region $region|egrep "LaunchTime.: "|sort -r|sort -r|head -1`;
-$y=$1 if $y =~ /LaunchTime": "([^"]+)"/;
-print "$y\n";
-
-# Get just the last instance launched. So, we can the name if the stack ($stackname)
-$_=`aws ec2 describe-instances --region $region --filter "Name=launch-time,Values=$y"`;
-print "DEBUG: length of instance with launch time = \"$y\" is ",length($_),"\n";
-
-@x=split(/\n/,$_);
-
-for( my $i=0; $i < scalar(@x); $i++){
-   local $_=$x[$i];
-   if ( /"Key": "StackName"/ ){
-      $stackname=$x[$i-1];
-      $stackname = $1 if $stackname =~ /"Value": "(\w[^"]*)"/;
-      last;
-   }
-}
-print "DEBUG: stackname=\"$stackname\"\n";
-#---------------------------------------------------------------------------------
-# END Get the most recent stack name (we will assume this is the one to work with)
-#---------------------------------------------------------------------------------
+$DefaultValuesOfCfgVariables{'ToS3Bucket'}='';
 
 #--------------------------------------------------------------------------------
 # Get any configuration variables, and their values, in the instance descriptions.
 #--------------------------------------------------------------------------------
-$z=`aws ec2 describe-instances --region $region --filter "Name=tag:slavesPerNode,Values=*,Name=tag:StackName,Values=$stackname"`;
+# First get instance descriptions for just instance having StackName equal to $stackname.
+$StackNameInstanceDescriptions=`aws ec2 describe-instances --region $region --filter "Name=tag:slavesPerNode,Values=*,Name=tag:StackName,Values=$stackname"`;
 
 # The following is DEBUG
 `aws ec2 describe-instances --region $region --filter "Name=tag:slavesPerNode,Values=*,Name=tag:StackName,Values=$stackname" > /home/ec2-user/instance-descriptions.json`;
 
 # Note. This function's output will be in the hash %ValueOfCfgVariable, where the key is the cfg variable and value is its value
 %ValueOfCfgVariable=();
-getCfgVariablesFromInstanceDescriptions($z, keys %DefaultValuesOfCfgVariables);
+getCfgVariablesFromInstanceDescriptions($StackNameInstanceDescriptions, keys %DefaultValuesOfCfgVariables);
 
 $ValueOfCfgVariable{'stackname'}=$stackname;
+$ValueOfCfgVariable{'ToS3Bucket'}="s3://${stackname}-backup";
 
 sub getCfgVariablesFromInstanceDescriptions{
 my ($InstanceDescriptions,@CfgVariable)=@_;
 
    # Split descriptions into lines
-   my @z=split(/\n/,$InstanceDescriptions);
+   my @StackNameInstanceDescriptions=split(/\n/,$InstanceDescriptions);
    
    # Initialize %ValueOfCfgVariable with the default value of each cfg variable
    foreach my $cfgvar (@CfgVariable){
@@ -71,11 +48,11 @@ my ($InstanceDescriptions,@CfgVariable)=@_;
    # Look for the variable name and get its value. Store in ValueOfCfgVariable.
    my $re='\b'.join("|",@CfgVariable).'\b';
    my $VariablesFound=0;
-   for( my $i=0; $i < scalar(@z); $i++){
-       local $_=$z[$i];
+   for( my $i=0; $i < scalar(@StackNameInstanceDescriptions); $i++){
+       local $_=$StackNameInstanceDescriptions[$i];
        if ( /($re)/ ){
           my $v=$1;
-          $_=$z[$i-1];
+          $_=$StackNameInstanceDescriptions[$i-1];
           s/^.*"Value"\s*:\s+"//;
           s/",\s*$//;
           $ValueOfCfgVariable{$v}=($v eq 'pem')? "/home/ec2-user/$_.pem" : $_;
@@ -142,6 +119,7 @@ else{
 # Put all configuration values in cfg_BestHoA.sh
 $cfgfile="/home/ec2-user/cfg_BestHPCC.sh";
 open(OUT,">>$cfgfile") || die "Can't open for append: \"$cfgfile\"\n";
+print OUT "\n";
 foreach my $cfgvar (keys %ValueOfCfgVariable){
    if (( $cfgvar eq 'UserNameAndPassword' ) && ( $ValueOfCfgVariable{$cfgvar} ne 'thumphrey/password' ) && ( $ValueOfCfgVariable{$cfgvar} =~ /^\w+\W.+$/ )){
       my $username = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^(\w+)/;
@@ -158,7 +136,7 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
       my $version = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^hpcc-platform-(.+)$/i;
       my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
       my $First2Digits = $1 if $base_version =~ /^(\d+\.\d+)/;
-      print "DEBUG: First2Digits=\"$First2Digits\"\n";
+print "DEBUG: First2Digits=\"$First2Digits\"\n";
       $platformpath =~ s/<base_version>/$base_version/;
       $platformBefore5_2 =~ s/<version>/$version/;
       $platformAfter5_2 =~ s/<version>/$version/;
@@ -181,3 +159,5 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
 }
 close(OUT);
 
+# Get and put private and public ips in their respective files
+system("perl /home/ec2-user/getPublicAndPrivateIps.pl");
