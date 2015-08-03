@@ -6,7 +6,7 @@
 2015/07/08 In install_hpcc.sh, fixed yum installs of blas libraries.<br />  
 2015/08/03 Added code to copy, in parallel, files to/from s3 buckets from/to slave thor nodes. Plus, made changes to speed up deployment process<br />
 
-# Brief Instructions for Using Copy from/to S3 Buckets Scripts.
+## Brief Instructions for Using Copy from/to S3 Buckets Scripts.
 
 There are two scripts that should be ran on the master instance:
 
