@@ -1,4 +1,4 @@
-**Modifications made after the creation of this repository**
+**Modifications made after the initial creation of this repository**
 + 2015/06/25 Added htpasswd authentication.
 + 2015/06/29 added Can select HPCC Platform.  
 + 2015/07/01 Fixed bug in calculation of globalMemorySize (in finalConfigureHPCC.sh)  
