@@ -43,8 +43,7 @@ else{
 =cut
 
 if ( scalar(@FilesOnThor)>0 ){
-     printLog($cp2s3_logname,"In cpAllFilePartsToS3.pl. sudo s3cmd put --recursive $FilePartsFolder/* $s3bucket/thor/\n");
-     system("sudo s3cmd put --recursive $FilePartsFolder $s3bucket/thor/");
+     printLog($cp2s3_logname,"In cpAllFilePartsToS3.pl. cd $FilePartsFolder;sudo s3cmd put --recursive . $s3bucket\n");
      system("cd $FilePartsFolder;sudo s3cmd put --recursive . $s3bucket");
 }
 else{
