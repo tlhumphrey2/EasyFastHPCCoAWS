@@ -44,7 +44,8 @@ else{
 
 if ( scalar(@FilesOnThor)>0 ){
      printLog($cp2s3_logname,"In cpAllFilePartsToS3.pl. sudo s3cmd put --recursive $FilePartsFolder/* $s3bucket/thor/\n");
-     system("sudo s3cmd put --recursive $FilePartsFolder/* $s3bucket/thor/");
+     system("sudo s3cmd put --recursive $FilePartsFolder $s3bucket/thor/");
+     system("cd $FilePartsFolder;sudo s3cmd put --recursive . $s3bucket");
 }
 else{
      printLog($cp2s3_logname,"NO File parts to copy to S3.\n");

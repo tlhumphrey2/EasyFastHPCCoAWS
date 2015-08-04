@@ -27,9 +27,18 @@ if ( `cat /tmp/bucket_exists.txt` =~ /not exist/i ){
    exit 0;
 }
 
+if ( ! -e $FilePartsFolder ){
+   print("FilePartsFolder=\"$FilePartsFolder\" DOES NOT EXIST. sudo mkdir $FilePartsFolder\n");
+   system("sudo mkdir $FilePartsFolder");
+   print("sudo chown hpcc:hpcc $FilePartsFolder\n");
+   system("sudo chown -R hpcc:hpcc $FilePartsFolder");
+}
+
 # Copy all file part on $from_s3_bucket into $FilePartsFolder
-printLog($cpfs3_logname,"DEBUG: In cpAllFilePartsOnS3. system(\"cd $FilePartsFolder;sudo s3cmd get $from_s3_bucket --recursive\")\n");
+printLog($cpfs3_logname,"DEBUG: In cpAllFilePartsFromS3ToThisSlaveNode. system(\"cd $FilePartsFolder;sudo s3cmd get $from_s3_bucket --recursive\")\n");
 system("cd $FilePartsFolder;sudo s3cmd get $from_s3_bucket --recursive > /dev/null 2> /dev/null");
+print("sudo chown hpcc:hpcc $FilePartsFolder\n");
+system("sudo chown -R hpcc:hpcc $FilePartsFolder");
 
 # Let everyone know this node has completed copying file parts from S3 to node.
 system("echo \"done\" > $cpfs3_DoneAlertFile");
