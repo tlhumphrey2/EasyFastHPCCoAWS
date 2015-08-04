@@ -51,7 +51,8 @@ else
 @slave_pip = get_ordered_thor_slave_ips();
 
 # Change thor slave IPs in metadata xml files to current IPs, i.e. @slave_pip.
-$comma_separated_slave_ips=join(",",@slave_pip);
+$comma_separated_slave_ips=makeIPGroup();
+printLog($cpfs3_logname,"DEBUG: In cpMetadataFilesFromS3ToNode.pl. comma_separated_slave_ips=\"$comma_separated_slave_ips\"\n");
 undef $/; # Make line/record delimiter NULL so read brings in whole file.
 foreach my $mfile (@metadatafile){
    printLog($cpfs3_logname,"DEBUG: In cpMetadataFilesFromS3ToNode.pl. Open metadata file: $mfile.\n");
@@ -70,3 +71,18 @@ foreach my $mfile (@metadatafile){
 }
 
 printLog($cpfs3_logname,"In cpMetadataFilesFromS3ToNode.pl. Completed copying from S3 metadata files to node and changing slave ips of them.\n");
+#=======================================================================
+sub makeIPGroup{
+  $[=1;
+  my @SlaveIPs=reverse @slave_pip;
+  # Fill array with IPs starting with last one first.
+  # Slave IPs are stored in @SlaveIPs. The order: last slave ip is first in @SlaveIPs.
+  my @IPsByNodeNumber=();
+  my $nSlaves=$non_support_instances*$slavesPerNode;
+  for( $i=1; $i <= $nSlaves; $i++){
+     my $j= $i % $non_support_instances;
+     $IPsByNodeNumber[$i] = $SlaveIPs[$j]; 
+  }
+  $[=0;
+  return join(",",@IPsByNodeNumber);
+}
