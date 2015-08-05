@@ -9,12 +9,14 @@ die "USAGE ERROR: $0 <NAME OF S3 BUCKET TO COPY FROM> (REQUIRED)\n" if scalar(@A
 my $bucket_basename=shift @ARGV;
 $bucket_basename = "s3://$bucket_basename" if $bucket_basename !~ /^s3:\/\//i;
 print "Bucket that files will come from is: \"$bucket_basename\"\n";
+# To cfg_BestHPCC.sh, add environment variable, FromS3Bucket.
+system("echo \"\nFromS3Bucket=$bucket_basename\" >> /home/ec2-user/cfg_BestHPCC.sh");
 
 # Make sure the bucket exists. If NOT then EXIT
 system("sudo s3cmd ls $bucket_basename 2> /tmp/bucket_basename_exists.txt");
 if ( `cat /tmp/bucket_basename_exists.txt` =~ /not exist/i ){
-   print("In cpFromS3ToMasterAndAllSlaves.pl. THE S3 BUCKET, $bucket_basename, DOES NOT EXISTS.\nEXITing.\n");
-   exit 0;
+   print("In cpFromS3ToMasterAndAllSlaves.pl. FATAL ERROR. THE S3 BUCKET, $bucket_basename, DOES NOT EXISTS.\nEXITing.\n");
+   exit 1;
 }
 # THE bucket exists. So, put it in the file /home/ec2-user/new_cfg_BestHPCC.sh
 else{
@@ -28,14 +30,14 @@ else{
 # Make sure the copy FROM HPCC is compatible with the copy TO HPCC.
 # This includes: they must have the same number of thor slave instances ($non_support_instances),
 #  they must have the same number of thor slaves per instance ($slavesPerNode), and
-#  each instance must have enough disk space to hold the files being copied.
+#  for the TO THOR, each instance must have enough disk space to hold the files being copied.
 #-------------------------------------------------------------------------------
 # Instantiate the cfg files environment variables of FROM HPCC
 require "$thisDir/getNewConfigurationFile.pl";
 
-$from_slavesPerNode=$slavesPerNode;
-$from_non_support_instances=$non_support_instances;
-$from_thor_s3_buckets=$thor_s3_buckets;
+$from_slavesPerNode=$slavesPerNode;                # Number of slave nodes per slave instance
+$from_non_support_instances=$non_support_instances;# Number of slave instances
+$from_thor_s3_buckets=$thor_s3_buckets;            # List of s3_buckets containing 
 @from_thor_s3_buckets=split(/,/,$from_thor_s3_buckets);
 print "from_slavesPerNode=$from_slavesPerNode, from_non_support_instances=$from_non_support_instances, \@from_thor_s3_buckets=(",join(", ",@from_thor_s3_buckets),")\n";
 
@@ -70,8 +72,9 @@ print "Private ips=(",join(", ",@private_ips),")\n";
 @DiskSpaceOnCurrentInstances=();
 foreach my $ip (@private_ips){
    print "my \$d=\`ssh -i $pem ec2-user\@$ip \"lsblk -b|tail -1\"\`\n";
-   my $d=`ssh -i $pem ec2-user\@$ip "lsblk -b|tail -1"`;
-   $d = (split(/\s+/,$d))[3];
+#   my $d=`ssh -i $pem ec2-user\@$ip "lsblk -b|tail -1"`;
+#   $d = (split(/\s+/,$d))[3];
+   my $d=`ssh -i $pem ec2-user\@$ip "echo \$((\$(stat -f --format="%a*%S" /var/lib/HPCCSystems)))"`; chomp $d;
    print "ip=\"$ip\"'s disk space is d=\"$d\"\n";
    push @DiskSpaceOnCurrentInstances, $d;
 }
