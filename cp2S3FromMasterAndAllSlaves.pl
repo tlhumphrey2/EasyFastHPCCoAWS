@@ -10,6 +10,8 @@ if ( scalar(@ARGV) > 0 ){
   $ToS3Bucket=shift @ARGV;
   $ToS3Bucket = "s3://$ToS3Bucket" if $ToS3Bucket !~ /^s3:\/\//i;
   print "Input, as an argument, was ToS3Bucket=\"$ToS3Bucket\"\n";
+  # To cfg_BestHPCC.sh, add environment variable, ToS3Bucket.
+  system("echo \"\nToS3Bucket=$ToS3Bucket\" >> /home/ec2-user/cfg_BestHPCC.sh");
 }
 
 #------------------------------
