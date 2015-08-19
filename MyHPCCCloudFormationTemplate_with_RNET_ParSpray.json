@@ -1,0 +1,966 @@
+{
+    "Description" : "20150604 added: Make s3 bucket that contains all scripts a parameter",
+    "Description" : "20150604 added: AMI should be selected automatically depending on region.",
+    "Description" : "20150609 added: Support for ROXIE so ROXIEs are created on different instances than those having THOR slave nodes.",
+    "Description" : "20150611 added: IAM Instance Profile need to be in resources. Currently they are parameters.",
+    "Description" : "20150617 fixed: AMI id for eu-central-1 was incorrect. Fixed it.",
+    "Description" : "20150625 added: Add authentication, i.e. user-id and password",
+    "Description" : "20150629 added: We need to give user other choices for HPCC Platform (current set in cfg_BestHPCC.sh to 5.0.0-3)",
+    "Description" : "20150724 added: Added scripts that will copy in parallel THOR slave file parts and their metadata file to S3",
+    "Description" : "20150730 added: Fixed JIRA HPCC-13855. Now we only need to start the HPCC System one time AND we only need to envgen once. Therefore configure and deploy is faster",
+    "Description" : "Need: Have parameters for data s3 bucket access and secret keys and for data s3 bucket name.",
+    "Description" : "      Plus, have code that mounts bucket to dropzone if bucket name is given.",
+    "Description" : "Need: Make a different template that uses EBS volumes instead of SSD",
+    "Description" : "Need: Add descriptions of the various resources.",
+    "Description" : "Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
+
+    "Parameters" : {
+
+        "HPCCPlatform" : {
+            "Description" : "The version of the HPCC Platform to install.",
+            "AllowedValues" : [
+                "HPCC-Platform-5.0.0-3",
+                "HPCC-Platform-5.0.16-1",
+                "HPCC-Platform-5.2.2-1",
+                "HPCC-Platform-5.2.4-1"
+                ],
+            "Default" : "HPCC-Platform-5.2.4-1",
+            "Type" : "String"
+        },
+        "KeyPair" : {
+            "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
+            "Type" : "AWS::EC2::KeyPair::KeyName",
+            "Default" : ""
+        },
+
+        "UserNameAndPassword" : {
+            "Description" : "(Optional) Enter like: username/password Used to log into ECL Watch and ECL IDE.",
+            "Type" : "String",
+            "Default" : ""
+        },
+
+        "NumberOfSlaveInstances" : {
+            "Description" : "Number of Slave instances to be launched",
+            "Type" : "Number",
+            "Default" : "2"
+        },
+
+        "NumberOfRoxieNodes" : {
+            "Description" : "Number of Roxie nodes in deployed HPCC System",
+            "Type" : "Number",
+            "Default" : "0"
+        },
+
+        "NumberOfSlavesPerNode" : {
+            "Description" : "Number of THOR slave nodes per slave instance",
+            "Type" : "Number",
+            "Default" : "1"
+        },
+
+        "MasterInstanceType" : {
+            "Description" : "HPCC Thor Master EC2 instance type",
+            "AllowedValues" : [
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c3.8xlarge",
+                "d2.xlarge",
+                "d2.2xlarge",
+                "d2.4xlarge",
+                "d2.8xlarge"
+                ],
+            "Default" : "c3.xlarge",
+            "Type" : "String"
+        },
+
+        "SlaveInstanceType" : {
+            "Description" : "HPCC Thor Slave EC2 instance type",
+            "AllowedValues" : [
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c4.8xlarge",
+                "d2.xlarge",
+                "d2.2xlarge",
+                "d2.4xlarge",
+                "d2.8xlarge"
+                ],
+            "Default" : "c3.xlarge",
+            "Type" : "String"
+        },
+
+        "RoxieInstanceType" : {
+            "Description" : "HPCC Roxie EC2 instance type",
+            "AllowedValues" : [
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c4.8xlarge",
+                "d2.xlarge",
+                "d2.2xlarge",
+                "d2.4xlarge",
+                "d2.8xlarge"
+                ],
+            "Default" : "c3.xlarge",
+            "Type" : "String"
+        },
+
+        "ScriptsS3BucketFolder" : {
+            "Type" : "String",
+            "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
+            "Default" : ""
+        },
+
+        "HPCCPlacementGroup" : {
+            "Type" : "String",
+            "Description" : "Placement Group using by HPCC System",
+            "Default" : ""
+        }
+    },
+
+    "Mappings" : {
+      "RegionMap" : {
+        "us-east-1" : { "64" : "ami-1ecae776" },
+        "us-west-2" : { "64" : "ami-e7527ed7" },
+        "us-west-1" : { "64" : "ami-d114f295" },
+        "eu-west-1" : { "64" : "ami-a10897d6" },
+        "eu-central-1" : { "64" : "ami-a8221fb5" },
+        "ap-southeast-1" : { "64" : "ami-68d8e93a" },
+        "ap-southeast-2" : { "64" : "ami-cbf90ecb" },
+        "ap-northeast-1" : { "64" : "ami-fd9cecc7" },
+        "sa-east-1" : { "64" : "ami-b52890a8" }
+      }
+    },
+
+    "Resources" : {        
+
+         "HPCCInstanceRoles": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+               "AssumeRolePolicyDocument": {
+                  "Version" : "2012-10-17",
+                  "Statement": [ {
+                     "Effect": "Allow",
+                     "Principal": {
+                        "Service": [ "ec2.amazonaws.com" ]
+                     },
+                     "Action": [ "sts:AssumeRole" ]
+                  } ]
+               },
+               "Path": "/",
+               "Policies": [ {
+                  "PolicyName": "root",
+                  "PolicyDocument": {
+                     "Version" : "2012-10-17",
+                     "Statement": [ {
+                        "Effect": "Allow",
+                        "Action": "*",
+                        "Resource": "*"
+                     } ]
+                  }
+                  } ]
+               }
+         },
+
+         "HPCCInstanceProfile" : {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+               "Path": "/",
+               "Roles": [ { "Ref" : "HPCCInstanceRoles" } ]
+            }
+         },
+         
+         "HPCCVpc" : {
+           "Type" : "AWS::EC2::VPC",
+           "Properties" : {
+             "CidrBlock": "10.0.0.0/16"
+           }
+         },
+         "InternetGateway" : {
+           "Type" : "AWS::EC2::InternetGateway"
+         },
+
+         "PublicInternetRoute" : {
+           "Type" : "AWS::EC2::Route",
+           "DependsOn" : [ "InternetGateway", "PublicInternetRouteTable" ] ,
+           "Properties" : {
+             "DestinationCidrBlock" : "0.0.0.0/0",
+             "GatewayId" : { "Ref" : "InternetGateway" },
+             "RouteTableId" : { "Ref" : "PublicInternetRouteTable" }
+           }
+         },
+
+         "VPCGatewayAttachment" : {
+           "Type" : "AWS::EC2::VPCGatewayAttachment",
+           "Properties" : {
+             "InternetGatewayId" : { "Ref" : "InternetGateway" },
+             "VpcId" : { "Ref" : "HPCCVpc" }
+           }
+         },
+
+         "PublicInternetRouteTable" : {
+           "Type" : "AWS::EC2::RouteTable",
+           "Properties" : {
+             "VpcId" : { "Ref" : "HPCCVpc" }
+           }
+         },
+        
+         "Subnet" : {
+          "Type" : "AWS::EC2::Subnet",
+          "Properties" :  {
+                  "CidrBlock": "10.0.0.0/24", 
+                  "VpcId": { "Ref" : "HPCCVpc" }, 
+                  "Tags": [{ "Value": "HPCC-Public-subnet","Key": "Name"}] 
+           }
+         },
+
+         "SubnetRouteTableAssociation" : {
+           "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+           "Properties" : {
+             "RouteTableId" : { "Ref" : "PublicInternetRouteTable" },
+             "SubnetId" : { "Ref" : "Subnet" }
+           }
+         },
+
+         "HPCCSecurityGroups": {
+          "Type" : "AWS::EC2::SecurityGroup",
+          "Properties" : {
+              "GroupDescription" : "The following properities are the ports that an HPCC System needs",
+              "SecurityGroupEgress": [
+                  {
+                      "IpProtocol": "-1", 
+                      "CidrIp": "0.0.0.0/0"
+                  }
+              ], 
+              "SecurityGroupIngress": [
+                  {
+                      "ToPort": 8002, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 8002
+                  }, 
+                  {
+                      "ToPort": 8015, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 8015
+                  }, 
+                  {
+                      "ToPort": 8010, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 8010
+                  }, 
+                  {
+                      "ToPort": 8145, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 8145
+                  }, 
+                  {
+                      "ToPort": 22, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 22
+                  }, 
+                  {
+                      "ToPort": 65535, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 0
+                  }, 
+                  {
+                      "ToPort": 8050, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 8050
+                  }, 
+                  {
+                      "ToPort": 65535, 
+                      "IpProtocol": "udp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 0
+                  }, 
+                  {
+                      "ToPort": 8008, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 8008
+                  }, 
+                  {
+                      "ToPort": 9876, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 9876
+                  }, 
+                  {
+                      "ToPort": -1, 
+                      "IpProtocol": "icmp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": -1
+                  }
+              ], 
+              "VpcId": { "Ref": "HPCCVpc" } 
+             }
+         },
+
+         "SlaveASG" : {
+                        "Type" : "AWS::AutoScaling::AutoScalingGroup",
+                        "Properties" : {
+                                "VPCZoneIdentifier" : [{
+                                        "Ref" : "Subnet"
+                                }],
+                                "Cooldown" : "300",
+                                "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
+                                "DesiredCapacity" : {"Ref" : "NumberOfSlaveInstances" },
+                                "HealthCheckGracePeriod" : "300",
+                                "HealthCheckType" : "EC2",
+                                "LaunchConfigurationName" : {"Ref" : "SlaveLaunchCfg" },
+                                "MaxSize" : "10",
+                                "MinSize" : {"Ref" : "NumberOfSlaveInstances" },
+                                "Tags" : [
+                                          {
+                                                "Key" : "StackName",
+                                                "Value" : {"Ref" : "AWS::StackName" },
+                                                "PropagateAtLaunch" : "true"
+                                          },
+                                          {
+                                                "Key" : "Name",
+                                                "Value" : {
+                                                        "Fn::Join" : ["-",
+                                                                [{
+                                                                        "Ref" : "AWS::StackName"
+                                                                 },
+                                                                 "-Slave"
+                                                                ]]
+                                                },
+                                                "PropagateAtLaunch" : "true"
+                                           }
+                                  ]
+                        }
+        },
+                
+        "SlaveLaunchCfg" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
+                "InstanceType" : {"Ref" : "SlaveInstanceType" },
+                "AssociatePublicIpAddress" : "true",                                
+                "KeyName" : {"Ref" : "KeyPair" },
+                "SecurityGroups" : [ { "Ref" : "HPCCSecurityGroups" } ],
+                "BlockDeviceMappings" : [
+                {
+                        "DeviceName": "/dev/sdb",
+                        "VirtualName": "ephemeral0"
+                },
+                {
+                        "DeviceName": "/dev/sdc",
+                        "VirtualName": "ephemeral1"
+                },
+                {
+                        "DeviceName": "/dev/sdd",
+                        "VirtualName": "ephemeral2"
+                },
+                {
+                        "DeviceName": "/dev/sde",
+                        "VirtualName": "ephemeral3"
+                },
+                {
+                        "DeviceName": "/dev/sdf",
+                        "VirtualName": "ephemeral4"
+                },
+                {
+                        "DeviceName": "/dev/sdg",
+                        "VirtualName": "ephemeral5"
+                },
+                {
+                        "DeviceName": "/dev/sdh",
+                        "VirtualName": "ephemeral6"
+                },
+                {
+                        "DeviceName": "/dev/sdi",
+                        "VirtualName": "ephemeral7"
+                },
+                {
+                        "DeviceName": "/dev/sdj",
+                        "VirtualName": "ephemeral8"
+                },
+                {
+                        "DeviceName": "/dev/sdk",
+                        "VirtualName": "ephemeral9"
+                },
+                {
+                        "DeviceName": "/dev/sdl",
+                        "VirtualName": "ephemeral10"
+                },
+                {
+                        "DeviceName": "/dev/sdm",
+                        "VirtualName": "ephemeral11"
+                },
+                {
+                        "DeviceName": "/dev/sdn",
+                        "VirtualName": "ephemeral12"
+                },
+                {
+                        "DeviceName": "/dev/sdo",
+                        "VirtualName": "ephemeral13"
+                },
+                {
+                        "DeviceName": "/dev/sdp",
+                        "VirtualName": "ephemeral14"
+                },
+                {
+                        "DeviceName": "/dev/sdq",
+                        "VirtualName": "ephemeral15"
+                },
+                {
+                        "DeviceName": "/dev/sdr",
+                        "VirtualName": "ephemeral16"
+                },
+                {
+                        "DeviceName": "/dev/sds",
+                        "VirtualName": "ephemeral17"
+                },
+                {
+                        "DeviceName": "/dev/sdt",
+                        "VirtualName": "ephemeral18"
+                },
+                {
+                        "DeviceName": "/dev/sdu",
+                        "VirtualName": "ephemeral19"
+                },
+                {
+                        "DeviceName": "/dev/sdv",
+                        "VirtualName": "ephemeral20"
+                },
+                {
+                        "DeviceName": "/dev/sdw",
+                        "VirtualName": "ephemeral21"
+                },
+                {
+                        "DeviceName": "/dev/sdx",
+                        "VirtualName": "ephemeral22"
+                },
+                {
+                        "DeviceName": "/dev/sdy",
+                        "VirtualName": "ephemeral23"
+                },
+                {
+                        "DeviceName": "/dev/sdz",
+                        "VirtualName": "ephemeral24"
+                }
+                ],
+                "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+                "UserData" : {
+                    "Fn::Base64" : {
+                        "Fn::Join" : ["\n",
+                            ["#!/bin/bash", 
+                                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                                "yum -y clean all\n",
+                                "yum-config-manager --enable epel\n",
+                                "yum -y update --security\n",
+                                "yum -y update aws-cfn-bootstrap\n",
+                                "yum -y install aws-cli",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "aws s3 cp", 
+                                                 { "Ref" : "ScriptsS3BucketFolder" },
+                                                 "/home/ec2-user --recursive"
+                                                ]
+                                        ]
+                                },
+                                "chown ec2-user:ec2-user /home/ec2-user/*",
+                                "chmod 755 /home/ec2-user/*.sh",
+                                "chmod 755 /home/ec2-user/*.pl",
+ 
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                "~ec2-user/setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
+                                                                
+                                "echo SCRIPT: starting setupCfgFileVariables.pl",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref": "AWS::StackName" }, 
+                                                 { "Ref" : "AWS::Region" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
+                                                        
+                                "echo SCRIPT: starting install_hpcc.sh",
+                                "/home/ec2-user/install_hpcc.sh",
+                                "echo SCRIPT: install_hpcc.sh has completed",
+
+					     "echo Installing RNET S3 module related programs",
+					     "/home/ec2-user/rnet_parspray_setup_platform.sh go",
+					    "echo Done RNET setup!"
+                                ]
+                        ]
+                    }
+                }
+            }
+    },
+
+    "RoxieASG" : {
+                        "Type" : "AWS::AutoScaling::AutoScalingGroup",
+                        "Properties" : {
+                                "VPCZoneIdentifier" : [{
+                                        "Ref" : "Subnet"
+                                }],
+                                "Cooldown" : "300",
+                                "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
+                                "DesiredCapacity" : {"Ref" : "NumberOfRoxieNodes" },
+                                "HealthCheckGracePeriod" : "300",
+                                "HealthCheckType" : "EC2",
+                                "LaunchConfigurationName" : {"Ref" : "RoxieLaunchCfg" },
+                                "MaxSize" : "10",
+                                "MinSize" : {"Ref" : "NumberOfRoxieNodes" },
+                                "Tags" : [
+                                          {
+                                                "Key" : "StackName",
+                                                "Value" : {"Ref" : "AWS::StackName" },
+                                                "PropagateAtLaunch" : "true"
+                                          },
+                                          {
+                                                "Key" : "Name",
+                                                "Value" : {
+                                                        "Fn::Join" : ["-",
+                                                                [{
+                                                                        "Ref" : "AWS::StackName"
+                                                                 },
+                                                                 "-Roxie"
+                                                                ]]
+                                                },
+                                                "PropagateAtLaunch" : "true"
+                                           }
+                                  ]
+                        }
+        },
+                
+        "RoxieLaunchCfg" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
+                "InstanceType" : {"Ref" : "RoxieInstanceType" },
+                "AssociatePublicIpAddress" : "true",                                
+                "KeyName" : {"Ref" : "KeyPair" },
+                "SecurityGroups" : [ { "Ref" : "HPCCSecurityGroups" } ],
+                "BlockDeviceMappings" : [
+                {
+                        "DeviceName": "/dev/sdb",
+                        "VirtualName": "ephemeral0"
+                },
+                {
+                        "DeviceName": "/dev/sdc",
+                        "VirtualName": "ephemeral1"
+                },
+                {
+                        "DeviceName": "/dev/sdd",
+                        "VirtualName": "ephemeral2"
+                },
+                {
+                        "DeviceName": "/dev/sde",
+                        "VirtualName": "ephemeral3"
+                },
+                {
+                        "DeviceName": "/dev/sdf",
+                        "VirtualName": "ephemeral4"
+                },
+                {
+                        "DeviceName": "/dev/sdg",
+                        "VirtualName": "ephemeral5"
+                },
+                {
+                        "DeviceName": "/dev/sdh",
+                        "VirtualName": "ephemeral6"
+                },
+                {
+                        "DeviceName": "/dev/sdi",
+                        "VirtualName": "ephemeral7"
+                },
+                {
+                        "DeviceName": "/dev/sdj",
+                        "VirtualName": "ephemeral8"
+                },
+                {
+                        "DeviceName": "/dev/sdk",
+                        "VirtualName": "ephemeral9"
+                },
+                {
+                        "DeviceName": "/dev/sdl",
+                        "VirtualName": "ephemeral10"
+                },
+                {
+                        "DeviceName": "/dev/sdm",
+                        "VirtualName": "ephemeral11"
+                },
+                {
+                        "DeviceName": "/dev/sdn",
+                        "VirtualName": "ephemeral12"
+                },
+                {
+                        "DeviceName": "/dev/sdo",
+                        "VirtualName": "ephemeral13"
+                },
+                {
+                        "DeviceName": "/dev/sdp",
+                        "VirtualName": "ephemeral14"
+                },
+                {
+                        "DeviceName": "/dev/sdq",
+                        "VirtualName": "ephemeral15"
+                },
+                {
+                        "DeviceName": "/dev/sdr",
+                        "VirtualName": "ephemeral16"
+                },
+                {
+                        "DeviceName": "/dev/sds",
+                        "VirtualName": "ephemeral17"
+                },
+                {
+                        "DeviceName": "/dev/sdt",
+                        "VirtualName": "ephemeral18"
+                },
+                {
+                        "DeviceName": "/dev/sdu",
+                        "VirtualName": "ephemeral19"
+                },
+                {
+                        "DeviceName": "/dev/sdv",
+                        "VirtualName": "ephemeral20"
+                },
+                {
+                        "DeviceName": "/dev/sdw",
+                        "VirtualName": "ephemeral21"
+                },
+                {
+                        "DeviceName": "/dev/sdx",
+                        "VirtualName": "ephemeral22"
+                },
+                {
+                        "DeviceName": "/dev/sdy",
+                        "VirtualName": "ephemeral23"
+                },
+                {
+                        "DeviceName": "/dev/sdz",
+                        "VirtualName": "ephemeral24"
+                }
+                ],
+                "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+                "UserData" : {
+                    "Fn::Base64" : {
+                        "Fn::Join" : ["\n",
+                            ["#!/bin/bash", 
+                                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                                "yum -y clean all\n",
+                                "yum-config-manager --enable epel\n",
+                                "yum -y update --security\n",
+                                "yum -y update aws-cfn-bootstrap\n",
+                                "yum -y install aws-cli",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "aws s3 cp", 
+                                                 { "Ref" : "ScriptsS3BucketFolder" },
+                                                 "/home/ec2-user --recursive"
+                                                ]
+                                        ]
+                                },
+                                "chown ec2-user:ec2-user /home/ec2-user/*",
+                                "chmod 755 /home/ec2-user/*.sh",
+                                "chmod 755 /home/ec2-user/*.pl",
+ 
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                "~ec2-user/setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
+                                                                
+                                "echo SCRIPT: starting setupCfgFileVariables.pl",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref": "AWS::StackName" }, 
+                                                 { "Ref" : "AWS::Region" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
+                                                        
+                                "echo SCRIPT: starting install_hpcc.sh",
+                                "/home/ec2-user/install_hpcc.sh",
+                                "echo SCRIPT: install_hpcc.sh has completed"
+                                ]
+                        ]
+                    }
+                }
+            }
+    },
+
+    "MasterASG" : {
+        "Type" : "AWS::AutoScaling::AutoScalingGroup",
+        "Properties" : {
+                "VPCZoneIdentifier" : [{
+                        "Ref" : "Subnet"
+                }],
+                "Cooldown" : "300",
+                "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
+                "DesiredCapacity" : "1",
+                "HealthCheckGracePeriod" : "300",
+                "HealthCheckType" : "EC2",
+                "LaunchConfigurationName" : {"Ref" : "MasterLaunchCfg" },
+                "MaxSize" : "1",
+                "MinSize" : "1",
+                "Tags" : [
+                          {
+                                "Key" : "StackName",
+                                "Value" : {"Ref" : "AWS::StackName" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "pem",
+                                "Value" : {"Ref" : "KeyPair" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "slavesPerNode",
+                                "Value" : {"Ref" : "NumberOfSlavesPerNode" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "roxienodes",
+                                "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "UserNameAndPassword",
+                                "Value" : {"Ref" : "UserNameAndPassword" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "HPCCPlatform",
+                                "Value" : {"Ref" : "HPCCPlatform" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "Name",
+                                "Value" : {
+                                        "Fn::Join" : ["-",
+                                                [{
+                                                        "Ref" : "AWS::StackName"
+                                                 },
+                                                 "-Master"
+                                                ]]
+                                },
+                                "PropagateAtLaunch" : "true"
+                           }
+                  ]
+        },
+        "CreationPolicy": {
+            "ResourceSignal": {
+                "Count": "1",
+                "Timeout": "PT15M"
+            }
+        }
+    },
+
+    "MasterLaunchCfg" : {
+        "Type" : "AWS::AutoScaling::LaunchConfiguration",
+        "Properties" : {
+             "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
+             "InstanceType" : {"Ref" : "MasterInstanceType" },
+             "AssociatePublicIpAddress" : "true",                                
+             "KeyName" : {"Ref" : "KeyPair" },
+             "SecurityGroups" : [ { "Ref" : "HPCCSecurityGroups" } ],
+             "BlockDeviceMappings" : [
+             {
+                "DeviceName": "/dev/sdb",
+                "VirtualName": "ephemeral0"
+             },
+             {
+                "DeviceName": "/dev/sdc",
+                "VirtualName": "ephemeral1"
+             },
+             {
+                "DeviceName": "/dev/sdd",
+                "VirtualName": "ephemeral2"
+             },
+             {
+                "DeviceName": "/dev/sde",
+                "VirtualName": "ephemeral3"
+             },
+             {
+                "DeviceName": "/dev/sdf",
+                "VirtualName": "ephemeral4"
+             },
+             {
+                "DeviceName": "/dev/sdg",
+                "VirtualName": "ephemeral5"
+             },
+             {
+                "DeviceName": "/dev/sdh",
+                "VirtualName": "ephemeral6"
+             },
+             {
+                "DeviceName": "/dev/sdi",
+                "VirtualName": "ephemeral7"
+             },
+             {
+                "DeviceName": "/dev/sdj",
+                "VirtualName": "ephemeral8"
+             },
+             {
+                "DeviceName": "/dev/sdk",
+                "VirtualName": "ephemeral9"
+             },
+             {
+                "DeviceName": "/dev/sdl",
+                "VirtualName": "ephemeral10"
+             },
+             {
+                "DeviceName": "/dev/sdm",
+                "VirtualName": "ephemeral11"
+             },
+             {
+                "DeviceName": "/dev/sdn",
+                "VirtualName": "ephemeral12"
+             },
+             {
+                "DeviceName": "/dev/sdo",
+                "VirtualName": "ephemeral13"
+             },
+             {
+                "DeviceName": "/dev/sdp",
+                "VirtualName": "ephemeral14"
+             },
+             {
+                "DeviceName": "/dev/sdq",
+                "VirtualName": "ephemeral15"
+             },
+             {
+                "DeviceName": "/dev/sdr",
+                "VirtualName": "ephemeral16"
+             },
+             {
+                "DeviceName": "/dev/sds",
+                "VirtualName": "ephemeral17"
+             },
+             {
+                "DeviceName": "/dev/sdt",
+                "VirtualName": "ephemeral18"
+             },
+             {
+                "DeviceName": "/dev/sdu",
+                "VirtualName": "ephemeral19"
+             },
+             {
+                "DeviceName": "/dev/sdv",
+                "VirtualName": "ephemeral20"
+             },
+             {
+                "DeviceName": "/dev/sdw",
+                "VirtualName": "ephemeral21"
+             },
+             {
+                "DeviceName": "/dev/sdx",
+                "VirtualName": "ephemeral22"
+             },
+             {
+                "DeviceName": "/dev/sdy",
+                "VirtualName": "ephemeral23"
+             },
+             {
+                "DeviceName": "/dev/sdz",
+                "VirtualName": "ephemeral24"
+             }
+             ],
+             "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+             "UserData" : {
+                    "Fn::Base64" : {
+                        "Fn::Join" : ["\n",
+                            ["#!/bin/bash", 
+                                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                                "yum -y clean all\n",
+                                "yum-config-manager --enable epel\n",
+                                "yum -y update --security\n",
+                                "yum -y update aws-cfn-bootstrap\n",
+                                "yum -y install aws-cli",
+                               {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "aws s3 cp", 
+                                                 { "Ref" : "ScriptsS3BucketFolder" },
+                                                 "/home/ec2-user --recursive"
+                                                ]
+                                        ]
+                                },
+                                "chown ec2-user:ec2-user /home/ec2-user/*",
+                                "chmod 755 /home/ec2-user/*.sh",
+                                "chmod 755 /home/ec2-user/*.pl",
+
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                "/home/ec2-user/setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
+                                                                
+                                "echo SCRIPT: starting setupCfgFileVariables.pl",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 { "Ref": "AWS::StackName" }, 
+                                                 { "Ref" : "AWS::Region" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
+                                                        
+                                "echo SCRIPT: starting install_hpcc.sh",
+                                "/home/ec2-user/install_hpcc.sh",
+                                "echo SCRIPT: install_hpcc.sh has completed",
+                                                        
+                                "echo SCRIPT: starting getPublicAndPrivateIps.pl",
+                                "/home/ec2-user/getPublicAndPrivateIps.pl",
+                                "echo SCRIPT: getPublicAndPrivateIps.pl has completed",
+
+                                "echo SCRIPT: starting final_configureHPCC.sh",
+                                "/home/ec2-user/final_configureHPCC.sh",
+                                "echo SCRIPT: final_configureHPCC.sh has completed",
+
+                                "echo SCRIPT: starting startHPCCOnAllInstances.pl",
+                                "/home/ec2-user/startHPCCOnAllInstances.pl",
+                                "echo SCRIPT: startHPCCOnAllInstances.pl has completed",
+
+                                "echo SCRIPT: 'Signal stack that setup of HPCC System is complete.'",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                  "/opt/aws/bin/cfn-signal -e 0 --stack ", 
+                                                  { "Ref": "AWS::StackName" }, 
+                                                  "--resource MasterASG ", 
+                                                  "--region ", 
+                                                  { "Ref" : "AWS::Region" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: 'Done signaling stack that setup of HPCC System has completed.'"
+                            ]
+                        ]
+                    }
+             }
+         }
+    }      
+  }
+ }
