@@ -8,6 +8,8 @@
     "Description" : "20150629 added: We need to give user other choices for HPCC Platform (current set in cfg_BestHPCC.sh to 5.0.0-3)",
     "Description" : "20150724 added: Added scripts that will copy in parallel THOR slave file parts and their metadata file to S3",
     "Description" : "20150730 added: Fixed JIRA HPCC-13855. Now we only need to start the HPCC System one time AND we only need to envgen once. Therefore configure and deploy is faster",
+    "Description" : "20150820 Changed 5 files: common.pl, final_configureHPCC.pl,cp2S3FromMasterAndAllSlaves.pl,cpFromS3ToMasterAndAllSlaves.pl,MyHPCCCloudFormationTemplate.json",
+    "Description" : "20150820 Added user/pwd to dfuplus when given as CF parameter. Chged all public to private ips. Delete all log and done alert files before executing cp2 and cpFrom.",
     "Description" : "Need: Have parameters for data s3 bucket access and secret keys and for data s3 bucket name.",
     "Description" : "      Plus, have code that mounts bucket to dropzone if bucket name is given.",
     "Description" : "Need: Make a different template that uses EBS volumes instead of SSD",
@@ -925,10 +927,6 @@
                                 "echo SCRIPT: starting install_hpcc.sh",
                                 "/home/ec2-user/install_hpcc.sh",
                                 "echo SCRIPT: install_hpcc.sh has completed",
-                                                        
-                                "echo SCRIPT: starting getPublicAndPrivateIps.pl",
-                                "/home/ec2-user/getPublicAndPrivateIps.pl",
-                                "echo SCRIPT: getPublicAndPrivateIps.pl has completed",
 
                                 "echo SCRIPT: starting final_configureHPCC.sh",
                                 "/home/ec2-user/final_configureHPCC.sh",

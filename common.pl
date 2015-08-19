@@ -30,6 +30,9 @@ $hsbin='/opt/HPCCSystems/sbin';
 $configgen="$hsbin/configgen";
 $hbin='/opt/HPCCSystems/bin';
 $dfuplus="/opt/HPCCSystems/bin/dfuplus";
+if ( $system_username !~ /^\s*$/ ){
+   $dfuplus = "$dfuplus username=$system_username password=$system_password";
+}
 $daliadmin="/opt/HPCCSystems/bin/daliadmin";
 
 print "In common.pl Completed initializing all global variables.\n";
@@ -142,6 +145,7 @@ return $thor_slave_number;
 sub FilesOnThor{
 my ( $master_pip )=@_;
   # Get list of files on thor
+  printLog($cp2s3_logname,"In isFilesOnThor. Get THOR file names with: $dfuplus server=$master_pip action=list name=*\n");
   my @file=split(/\n/,`$dfuplus server=$master_pip action=list name=*`);
   shift @file;
   if ( scalar(@file)==0 ){

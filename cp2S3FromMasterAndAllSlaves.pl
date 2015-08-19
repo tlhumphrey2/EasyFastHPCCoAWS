@@ -6,14 +6,6 @@ $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 require "$thisDir/getConfigurationFile.pl";
 require "$thisDir/common.pl";
 
-if ( scalar(@ARGV) > 0 ){
-  $ToS3Bucket=shift @ARGV;
-  $ToS3Bucket = "s3://$ToS3Bucket" if $ToS3Bucket !~ /^s3:\/\//i;
-  print "Input, as an argument, was ToS3Bucket=\"$ToS3Bucket\"\n";
-  # To cfg_BestHPCC.sh, add environment variable, ToS3Bucket.
-  system("echo \"\nToS3Bucket=$ToS3Bucket\" >> /home/ec2-user/cfg_BestHPCC.sh");
-}
-
 #------------------------------
 # Get all private ips
 #------------------------------
@@ -60,15 +52,15 @@ for( my $i=0; $i <= $non_support_instances; $i++){ # we don't do this to any rox
      $ThisInstanceFound=1;
   }
   else{
-     print("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_DoneAlertFile;sudo perl /home/ec2-user/cpToS3.pl \&> /home/ec2-user/cpToS3.log\"\r\n");
-     system("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_DoneAlertFile;sudo perl /home/ec2-user/cpToS3.pl &> /home/ec2-user/cpToS3.log\"");print "\r";
+     print("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl \&> /home/ec2-user/cpToS3.log\"\r\n");
+     system("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl &> /home/ec2-user/cpToS3.log\"");print "\r";
      sleep(1);
   }
 }
 
 if ( $ThisInstanceFound ){
-     print("sudo perl /home/ec2-user/cpToS3.pl \&> /home/ec2-user/cpToS3.log\n\r\n");
-     system("sudo perl /home/ec2-user/cpToS3.pl &> /home/ec2-user/cpToS3.log");
+     print("sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl \&> /home/ec2-user/cpToS3.log\n\r\n");
+     system("sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl &> /home/ec2-user/cpToS3.log");
      sleep(1);
 }
 

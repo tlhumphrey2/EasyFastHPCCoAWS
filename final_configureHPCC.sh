@@ -22,7 +22,7 @@ fi
 masterMemTotal=`bash /home/ec2-user/getPhysicalMemory.sh`
 echo " masterMemTotal=\"$masterMemTotal\""
 
-SlavePublicIP=$(head -2 /home/ec2-user/public_ips.txt|tail -1)
+SlavePublicIP=$(head -2 /home/ec2-user/private_ips.txt|tail -1)
 slaveMemTotal0=$(ssh -o StrictHostKeyChecking=no -t -t -i $pem ec2-user@$SlavePublicIP bash /home/ec2-user/getPhysicalMemory.sh)
 slaveMemTotal=`echo $slaveMemTotal0|sed "s/.$//"`
 echo " slaveMemTotal=\"$slaveMemTotal\""
