@@ -7,12 +7,7 @@ MAIN_FOLDER=/home/$USER/rnet-parspray-files
 
 function print_usage
 {
- echo "STEOP: Make sure to take the following steps before running this program:"
- echo "1. Setup a password for user hpcc."
- echo "2. Setup ssh keys on all nodes for user hpcc using ssh-keygen, then copy public keys of all in ~/.ssh/authorized_keys of all"
- echo "3. Add hpcc to sudoers"
- echo "4. Set user to hpcc and run this program as a super user (sudo)."
- echo "Usage: $0 <nfs (for instance with attached snapshot) | <nsf server IP>(for others)> go"
+ echo "Usage: $0 go"
 }
 
 usermod -s /bin/bash $USER
