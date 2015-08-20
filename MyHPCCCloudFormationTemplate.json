@@ -774,6 +774,7 @@
 
     "MasterLaunchCfg" : {
         "Type" : "AWS::AutoScaling::LaunchConfiguration",
+        "DependsOn" : ["RoxieASG"],
         "Properties" : {
              "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
              "InstanceType" : {"Ref" : "MasterInstanceType" },
