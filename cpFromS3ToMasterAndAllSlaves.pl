@@ -161,7 +161,7 @@ do{
    @InstanceFilesNotCopiedTo=isFilesCopiedFromS3(@InstanceFilesNotCopiedTo);
    $InstancesCopiedFilesFromS3=scalar(@private_ips)-scalar(@InstanceFilesNotCopiedTo);
 #   print "After isFilesCopiedFromS3. InstancesCopiedFilesFromS3=$InstancesCopiedFilesFromS3\n";
-   sleep(1) if $InstancesCopiedFilesFromS3 < $NumberOfInstances;
+   sleep(5) if $InstancesCopiedFilesFromS3 < $NumberOfInstances;
 } while ( $InstancesCopiedFilesFromS3 < $NumberOfInstances );
 
 print "All Files Have Been Copied to S3.\r\n";
