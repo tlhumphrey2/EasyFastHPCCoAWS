@@ -38,7 +38,7 @@ TwoGB=2147483648
 MinLargeSlaveMemory=10737418240
 
 memory_override=''
-if [ $masterMemTotal -ne $slaveMemTotal ] && [ $slaveMemTotal -gt $MinLargeSlaveMemory ] && [ $masterMemTotal -ge $TwoGB ]
+if [ $non_support_instances -gt 0 ] && [ $masterMemTotal -ne $slaveMemTotal ] && [ $slaveMemTotal -gt $MinLargeSlaveMemory ] && [ $masterMemTotal -ge $TwoGB ]
 then
    # masterMemorySize = ($masterMemTotal - $OneGB)/$OneMB
    masterMemorySize=$(echo $masterMemTotal $OneGB $OneMB| awk '{printf "%.0f\n",($1-$2)/$3}')
