@@ -6,6 +6,7 @@
 + 2015/07/07 Changed scripts to use private IPs instead of public.  
 + 2015/07/08 In install_hpcc.sh, fixed yum installs of blas libraries.  
 + 2015/08/03 Added code to copy, in parallel, files to/from s3 buckets from/to slave thor nodes. Plus, made changes to speed up deployment process
++ 2015/09/02 Merged Parallel spray module. It sprays zipped xml files in an S3 bucket. It does this in parallel (see, this repository, the document, RNET_ParSpray_evaluation_guide_HPCC_CloudFormation.pdf. To use it, use the Cloud Formation template, MyHPCCCloudFormationTemplate_with_RNET_ParSpray.json.
 
 ## Brief Instructions for Using Copy from/to S3 Buckets Scripts.
 
