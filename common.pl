@@ -7,8 +7,6 @@ require "$thisDir/getConfigurationFile.pl";
 $ENV{'AWS_ACCESS_KEY_ID'}=$S3_ACCESS_KEY;
 $ENV{'AWS_SECRET_ACCESS_KEY'}=$S3_SECRET_KEY;
 $ENV{'AWS_DEFAULT_REGION'}=$region;
-print "In common.pl AWS_ACCESS_KEY_ID=\"$ENV{AWS_ACCESS_KEY_ID}\"\n";
-print "In common.pl AWS_SECRET_ACCESS_KEY=\"$ENV{AWS_SECRET_ACCESS_KEY}\"\n";
 
 #Log and Alert files
 $cpfs3_logname = "$thisDir/${stackname}_cpFilesFromS3.log";
@@ -144,6 +142,12 @@ return $thor_slave_number;
 #-----------------------------------------------------------------------------------
 sub FilesOnThor{
 my ( $master_pip )=@_;
+  sub rmPrefixDotDoubleColon{
+  my ( $n )=@_;
+  local $_=$n;
+   s/^\.:://;
+   return $_;
+  }
   # Get list of files on thor
   printLog($cp2s3_logname,"In isFilesOnThor. Get THOR file names with: $dfuplus server=$master_pip action=list name=*\n");
   my @file=split(/\n/,`$dfuplus server=$master_pip action=list name=*`);
@@ -151,6 +155,7 @@ my ( $master_pip )=@_;
   if ( scalar(@file)==0 ){
      printLog($cp2s3_logname,"In isFilesOnThor. There are no files on this thor.\n");
   }
+  @file=grep($_=rmPrefixDotDoubleColon($_),@file);
 return @file;
 }
 #-----------------------------------------------------------------------------------
