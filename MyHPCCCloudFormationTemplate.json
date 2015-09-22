@@ -32,7 +32,17 @@
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
-            "Default" : ""
+            "Default" : "tlh_keys_us_west_2"
+        },
+
+        "InstallCassandra" : {
+            "Description" : "(Optional) YES or NO to install Cassandra",
+            "AllowedValues" : [
+                "NO",
+                "YES"
+                ],
+            "Type" : "String",
+            "Default" : "YES"
         },
 
         "UserNameAndPassword" : {
@@ -44,7 +54,7 @@
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "6"
+            "Default" : "1"
         },
 
         "NumberOfRoxieNodes" : {
@@ -56,7 +66,7 @@
         "NumberOfSlavesPerNode" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "12"
+            "Default" : "3"
         },
 
         "MasterInstanceType" : {
@@ -72,7 +82,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.large",
             "Type" : "String"
         },
 
@@ -89,7 +99,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.8xlarge",
+            "Default" : "c3.large",
             "Type" : "String"
         },
 
@@ -106,20 +116,20 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.large",
             "Type" : "String"
         },
 
         "ScriptsS3BucketFolder" : {
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
-            "Default" : ""
+            "Default" : "s3://BestHoA/instance_files"
         },
 
         "HPCCPlacementGroup" : {
             "Type" : "String",
             "Description" : "Placement Group using by HPCC System",
-            "Default" : ""
+            "Default" : "pg-tlh-best"
         }
     },
 
@@ -137,6 +147,16 @@
       }
     },
 
+    "Conditions" : {
+
+         "CassandraIsInstalled" : {
+            "Fn::Equals": [
+               {"Ref": "InstallCassandra"},
+               "YES"
+            ]
+         }
+    },
+    
     "Resources" : {        
 
          "HPCCInstanceRoles": {
@@ -238,6 +258,54 @@
                   }
               ], 
               "SecurityGroupIngress": [
+                  {
+                      "ToPort": 8888, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 8888
+                  }, 
+                  {
+                      "ToPort": 9042, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 9042
+                  }, 
+                  {
+                      "ToPort": 7000, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 7000
+                  }, 
+                  {
+                      "ToPort": 7001, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 7001
+                  }, 
+                  {
+                      "ToPort": 7199, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 7199
+                  }, 
+                  {
+                      "ToPort": 9160, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 9160
+                  }, 
+                  {
+                      "ToPort": 61620, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 61620
+                  }, 
+                  {
+                      "ToPort": 61621, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "0.0.0.0/0",
+                      "FromPort": 61621
+                  }, 
                   {
                       "ToPort": 8002, 
                       "IpProtocol": "tcp", 
@@ -482,7 +550,7 @@
  
                                 "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
                                 "~ec2-user/setup_zz_zNxlarge_disks.pl",
-                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
@@ -495,11 +563,19 @@
                                                 ]
                                         ]
                                 },
-                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
+                                "echo SCRIPT: completed setupCfgFileVariables.pl",
                                                         
                                 "echo SCRIPT: starting install_hpcc.sh",
-                                "/home/ec2-user/install_hpcc.sh",
-                                "echo SCRIPT: install_hpcc.sh has completed"
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/install_hpcc.sh", 
+                                                 { "Ref" : "InstallCassandra" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: completed install_hpcc.sh"
                                 ]
                         ]
                     }
@@ -680,7 +756,7 @@
  
                                 "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
                                 "~ec2-user/setup_zz_zNxlarge_disks.pl",
-                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
@@ -693,11 +769,19 @@
                                                 ]
                                         ]
                                 },
-                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
+                                "echo SCRIPT: completed setupCfgFileVariables.pl",
                                                         
                                 "echo SCRIPT: starting install_hpcc.sh",
-                                "/home/ec2-user/install_hpcc.sh",
-                                "echo SCRIPT: install_hpcc.sh has completed"
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/install_hpcc.sh", 
+                                                 { "Ref" : "InstallCassandra" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: completed install_hpcc.sh"
                                 ]
                         ]
                     }
@@ -894,7 +978,7 @@
                                 "yum -y update --security\n",
                                 "yum -y update aws-cfn-bootstrap\n",
                                 "yum -y install aws-cli",
-                               {
+                                {
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
@@ -910,7 +994,7 @@
 
                                 "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
                                 "/home/ec2-user/setup_zz_zNxlarge_disks.pl",
-                                "echo SCRIPT: setup_zz_zNxlarge_disks.pl has completed",
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
@@ -923,19 +1007,37 @@
                                                 ]
                                         ]
                                 },
-                                "echo SCRIPT: setupCfgFileVariables.pl has completed",
+                                "echo SCRIPT: completed setupCfgFileVariables.pl",
                                                         
                                 "echo SCRIPT: starting install_hpcc.sh",
-                                "/home/ec2-user/install_hpcc.sh",
-                                "echo SCRIPT: install_hpcc.sh has completed",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/ec2-user/install_hpcc.sh", 
+                                                 { "Ref" : "InstallCassandra" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: completed install_hpcc.sh",
 
                                 "echo SCRIPT: starting final_configureHPCC.sh",
                                 "/home/ec2-user/final_configureHPCC.sh",
-                                "echo SCRIPT: final_configureHPCC.sh has completed",
+                                "echo SCRIPT: completed final_configureHPCC.sh",
 
                                 "echo SCRIPT: starting startHPCCOnAllInstances.pl",
                                 "/home/ec2-user/startHPCCOnAllInstances.pl",
-                                "echo SCRIPT: startHPCCOnAllInstances.pl has completed",
+                                "echo SCRIPT: completed startHPCCOnAllInstances.pl",
+
+                                "echo SCRIPT: starting cassandra if installed",
+                                {
+                                   "Fn::If": [
+                                               "CassandraIsInstalled",
+                                               "/home/ec2-user/startCassandraOnAllInstances.pl",
+                                               "echo NOT INSTALLING Cassandra"
+                                             ]
+                                },
+                                "echo SCRIPT: completed cassandra if installed",
 
                                 "echo SCRIPT: 'Signal stack that setup of HPCC System is complete.'",
                                 {
