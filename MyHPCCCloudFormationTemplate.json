@@ -257,6 +257,7 @@
                       "CidrIp": "0.0.0.0/0"
                   }
               ], 
+              "Description" : "Cassandra needs ports 8888 thru 61621 (below). HPCC uses the rest.",
               "SecurityGroupIngress": [
                   {
                       "ToPort": 8888, 
