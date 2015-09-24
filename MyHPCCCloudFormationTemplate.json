@@ -32,7 +32,7 @@
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
-            "Default" : ""
+            "Default" : "tlh_keys_us_west_2"
         },
 
         "InstallCassandra" : {
@@ -42,7 +42,7 @@
                 "YES"
                 ],
             "Type" : "String",
-            "Default" : "NO"
+            "Default" : "YES"
         },
 
         "UserNameAndPassword" : {
@@ -54,7 +54,7 @@
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "6"
+            "Default" : "1"
         },
 
         "NumberOfRoxieNodes" : {
@@ -66,7 +66,7 @@
         "NumberOfSlavesPerNode" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "12"
+            "Default" : "3"
         },
 
         "MasterInstanceType" : {
@@ -82,7 +82,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.large",
             "Type" : "String"
         },
 
@@ -99,7 +99,7 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.8xlarge",
+            "Default" : "c3.large",
             "Type" : "String"
         },
 
@@ -116,20 +116,20 @@
                 "d2.4xlarge",
                 "d2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "c3.large",
             "Type" : "String"
         },
 
         "ScriptsS3BucketFolder" : {
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
-            "Default" : ""
+            "Default" : "s3://BestHoA/instance_files"
         },
 
         "HPCCPlacementGroup" : {
             "Type" : "String",
             "Description" : "Placement Group using by HPCC System",
-            "Default" : ""
+            "Default" : "pg-tlh-best"
         }
     },
 
@@ -257,7 +257,6 @@
                       "CidrIp": "0.0.0.0/0"
                   }
               ], 
-              "Description" : "Cassandra needs ports 8888 thru 61621 (below). HPCC uses the rest.",
               "SecurityGroupIngress": [
                   {
                       "ToPort": 8888, 
@@ -392,25 +391,50 @@
                                 "LaunchConfigurationName" : {"Ref" : "SlaveLaunchCfg" },
                                 "MaxSize" : "10",
                                 "MinSize" : {"Ref" : "NumberOfSlaveInstances" },
-                                "Tags" : [
-                                          {
-                                                "Key" : "StackName",
-                                                "Value" : {"Ref" : "AWS::StackName" },
-                                                "PropagateAtLaunch" : "true"
-                                          },
-                                          {
-                                                "Key" : "Name",
-                                                "Value" : {
-                                                        "Fn::Join" : ["-",
-                                                                [{
-                                                                        "Ref" : "AWS::StackName"
-                                                                 },
-                                                                 "-Slave"
-                                                                ]]
-                                                },
-                                                "PropagateAtLaunch" : "true"
-                                           }
-                                  ]
+                "Tags" : [
+                          {
+                                "Key" : "StackName",
+                                "Value" : {"Ref" : "AWS::StackName" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "pem",
+                                "Value" : {"Ref" : "KeyPair" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "slavesPerNode",
+                                "Value" : {"Ref" : "NumberOfSlavesPerNode" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "roxienodes",
+                                "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "UserNameAndPassword",
+                                "Value" : {"Ref" : "UserNameAndPassword" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "HPCCPlatform",
+                                "Value" : {"Ref" : "HPCCPlatform" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "Name",
+                                "Value" : {
+                                        "Fn::Join" : ["-",
+                                                [{
+                                                        "Ref" : "AWS::StackName"
+                                                 },
+                                                 "-Slave"
+                                                ]]
+                                },
+                                "PropagateAtLaunch" : "true"
+                           }
+                  ]
                         }
         },
                 
@@ -598,25 +622,50 @@
                                 "LaunchConfigurationName" : {"Ref" : "RoxieLaunchCfg" },
                                 "MaxSize" : "10",
                                 "MinSize" : {"Ref" : "NumberOfRoxieNodes" },
-                                "Tags" : [
-                                          {
-                                                "Key" : "StackName",
-                                                "Value" : {"Ref" : "AWS::StackName" },
-                                                "PropagateAtLaunch" : "true"
-                                          },
-                                          {
-                                                "Key" : "Name",
-                                                "Value" : {
-                                                        "Fn::Join" : ["-",
-                                                                [{
-                                                                        "Ref" : "AWS::StackName"
-                                                                 },
-                                                                 "-Roxie"
-                                                                ]]
-                                                },
-                                                "PropagateAtLaunch" : "true"
-                                           }
-                                  ]
+                "Tags" : [
+                          {
+                                "Key" : "StackName",
+                                "Value" : {"Ref" : "AWS::StackName" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "pem",
+                                "Value" : {"Ref" : "KeyPair" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "slavesPerNode",
+                                "Value" : {"Ref" : "NumberOfSlavesPerNode" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "roxienodes",
+                                "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "UserNameAndPassword",
+                                "Value" : {"Ref" : "UserNameAndPassword" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "HPCCPlatform",
+                                "Value" : {"Ref" : "HPCCPlatform" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "Name",
+                                "Value" : {
+                                        "Fn::Join" : ["-",
+                                                [{
+                                                        "Ref" : "AWS::StackName"
+                                                 },
+                                                 "-Roxie"
+                                                ]]
+                                },
+                                "PropagateAtLaunch" : "true"
+                           }
+                  ]
                         }
         },
                 
