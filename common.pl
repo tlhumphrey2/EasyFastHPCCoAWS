@@ -140,6 +140,15 @@ my @slave_pip = @$slave_pip_ref;
 return $thor_slave_number;
 }
 #-----------------------------------------------------------------------------------
+sub isSuperFile{
+my ( $master_pip, $filename )=@_;
+
+  my $_=`$dfuplus server=$master_pip action=listsuper superfile=$filename`;
+  my $isSuper=(/\bnot found\b/)? 0 : 1;
+  
+return $isSuper;
+}
+#-----------------------------------------------------------------------------------
 sub FilesOnThor{
 my ( $master_pip )=@_;
   sub rmPrefixDotDoubleColon{
@@ -155,7 +164,16 @@ my ( $master_pip )=@_;
   if ( scalar(@file)==0 ){
      printLog($cp2s3_logname,"In isFilesOnThor. There are no files on this thor.\n");
   }
-  @file=grep($_=rmPrefixDotDoubleColon($_),@file);
+  @file0=grep($_=rmPrefixDotDoubleColon($_),@file);
+  
+  # (Skip superfiles) Remove superfiles
+  @file=();
+  foreach (@file0){
+     if ( ! isSuperFile($master_pip,$_) ){
+        push @file, $_;
+     }
+  }
+  
 return @file;
 }
 #-----------------------------------------------------------------------------------
