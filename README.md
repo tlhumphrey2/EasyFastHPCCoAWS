@@ -1,3 +1,5 @@
+*** To Copy from/to S3 Buckets, add the copying of superfiles.
+
 **Modifications made after the initial creation of this repository**
 + 2015/06/25 Added htpasswd authentication.
 + 2015/06/29 added Can select HPCC Platform.  
