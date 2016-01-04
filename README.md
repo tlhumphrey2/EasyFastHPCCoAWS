@@ -1,4 +1,4 @@
-** To Copy From/To S3 Buckets, add the copying of superfiles.
+** To Copy From/To S3 Buckets, add the copying of superfiles.**
 
 **Modifications made after the initial creation of this repository**
 + 2015/06/25 Added htpasswd authentication.
