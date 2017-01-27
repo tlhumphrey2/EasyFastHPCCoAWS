@@ -9,7 +9,7 @@ open(IN,$cassandra_yaml) || die "Can't open for input \"$cassandra_yaml\"\n";
 $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 
 require "$thisDir/getConfigurationFile.pl";
-require "$thisDir/common.pl";
+require "$thisDir/cp2s3_common.pl";
 
 ($master_pip, @slave_pip)=thor_nodes_ips();
 $all_private_ips=join(",",($master_pip, @slave_pip));

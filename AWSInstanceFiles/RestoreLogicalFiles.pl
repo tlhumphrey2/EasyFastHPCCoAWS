@@ -2,7 +2,7 @@
 
 $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 
-require "$thisDir/common.pl";
+require "$thisDir/cp2s3_common.pl";
 
 openLog($cpfs3_logname);
 

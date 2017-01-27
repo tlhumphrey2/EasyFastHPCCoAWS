@@ -13,6 +13,7 @@ if ( scalar(@xvdlines) >= 1 ){
    foreach (@xvdlines){
       # check to see if drive should be umounted
       my $drv=getdrv($_);
+      print "After calling getdrv. drv=\"$drv\"\n";
       push @drv, $drv;
 
       if ( /disk\s+[^\s]/ ){
@@ -33,7 +34,7 @@ if ( scalar(@xvdlines) >= 1 ){
 
    #----------------------------------------------------------------
    # Do raid
-   print("$_\n");
+   print("Do raid: $_\n");
    system("$_");
 
    #----------------------------------------------------------------
@@ -58,10 +59,10 @@ if ( scalar(@xvdlines) >= 1 ){
    system(" mount -o remount -o noatime /mnt/");
 
    #----------------------------------------------------------------
-   print(" mkdir -p /var/lib/HPCCSystems &&  mount /dev/md0 /var/lib/HPCCSystems\n");
-   system(" mkdir -p /var/lib/HPCCSystems &&  mount /dev/md0 /var/lib/HPCCSystems");
-#   print("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems\n");
-#   system("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems");
+   print("mount /dev/md0 /var/lib/HPCCSystems\n");
+   system("mount /dev/md0 /var/lib/HPCCSystems");
+#   print("ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems\n");
+#   system("ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems");
 
 }
 #----------------------------------------------------------------
@@ -69,6 +70,7 @@ if ( scalar(@xvdlines) >= 1 ){
 #----------------------------------------------------------------
 sub getdrv{
 my ($l)=@_;
+print "Entering getdrv. l=\"$l\"\n";
   local $_=$l;
   s/^\s*(xvd.).+$/$1/;
 print "Leaving getdrv. return \"$_\"\n";

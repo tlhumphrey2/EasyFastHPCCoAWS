@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Instantiate configuration variables
+echo "Instantiate configuration variables (need phcc_platform)"
+. ~ec2-user/cfg_BestHPCC.sh
+
 #install prereqs
 echo "install prereqs"
 yum install -y boost141
@@ -18,13 +22,13 @@ yum -y install lapack-devel
 echo "install blas-devel"
 yum -y install blas-devel
 
+#install libsvm-devel
+echo "yum -y install libsvm-devel"
+yum -y install libsvm-devel
+
 echo "symbolic links to blas libraries"
 ln -s /usr/lib64/libblas.so /usr/lib/libblas.so
 ln -s /usr/lib64/atlas/libcblas.so /usr/lib/libcblas.so
-
-# Instantiate configuration variables
-echo "Instantiate configuration variables (need phcc_platform)"
-. ~ec2-user/cfg_BestHPCC.sh
 
 # Install s3cmd
 ~ec2-user/install_s3cmd.sh
@@ -36,8 +40,10 @@ cd hpcc
 echo "wget $hpcc_platform"
 wget $hpcc_platform
 
-echo "rpm -iv --nodeps $hpcc_platform"
-rpm -iv --nodeps $hpcc_platform
+#echo "rpm -iv --nodeps $hpcc_platform"
+#rpm -iv --nodeps $hpcc_platform
+echo "yum install $hpcc_platform -y"
+yum install $hpcc_platform -y
 
 if [ "$#" -eq 1 ];then
    if [ "$1" == "YES" ];then

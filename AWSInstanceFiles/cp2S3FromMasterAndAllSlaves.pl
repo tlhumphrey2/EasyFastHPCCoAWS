@@ -4,7 +4,7 @@
 $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 
 require "$thisDir/getConfigurationFile.pl";
-require "$thisDir/common.pl";
+require "$thisDir/cp2s3_common.pl";
 
 #------------------------------
 # Get all private ips
