@@ -43,7 +43,7 @@ print "from_slavesPerNode=$from_slavesPerNode, from_non_support_instances=$from_
 
 # Instantiate the cfg files environment variables of TO HPCC
 require "$thisDir/getConfigurationFile.pl";
-require "$thisDir/common.pl";
+require "$thisDir/cp2s3_common.pl";
 
 #-----------------------------------------------------------------------------------------
 # slavesPerNode and non_support_instances of FROM and TO systems must be the same.
