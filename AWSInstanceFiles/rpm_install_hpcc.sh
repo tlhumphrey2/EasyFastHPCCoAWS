@@ -40,13 +40,10 @@ cd hpcc
 echo "wget $hpcc_platform"
 wget $hpcc_platform
 
-if [ "$IsPlatformSixOrHigher" -eq 1 ];then
- echo "yum install $hpcc_platform -y"
- yum install $hpcc_platform -y
-else
- echo "rpm -iv --nodeps $hpcc_platform"
- rpm -iv --nodeps $hpcc_platform
-fi
+echo "rpm -iv --nodeps $hpcc_platform"
+rpm -iv --nodeps $hpcc_platform
+#echo "yum install $hpcc_platform -y"
+#yum install $hpcc_platform -y
 
 if [ "$#" -eq 1 ];then
    if [ "$1" == "YES" ];then
