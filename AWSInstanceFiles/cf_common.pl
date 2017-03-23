@@ -60,5 +60,33 @@ for( my $i=0; $i < scalar(@x); $i++){
 #print "DEBUG: instance ids=(",join(",",@x),")\n";
 return @x;
 }
-#=====================================================================
+#==========================================================================================================
+sub getCfgVariablesFromInstanceDescriptions{
+my ($InstanceDescriptions,@CfgVariable)=@_;
+
+   # Split descriptions into lines
+   my @InstanceDescriptionsLine=split(/\n/,$InstanceDescriptions);
+
+   # Initialize %ValueOfCfgVariable with the default value of each cfg variable
+   foreach my $cfgvar (@CfgVariable){
+      $ValueOfCfgVariable{$cfgvar}=$DefaultValuesOfCfgVariables{$cfgvar};
+   }
+
+   # Look for the variable name and get its value. Store in %ValueOfCfgVariable.
+   my $re='\b'.join("|",@CfgVariable).'\b';
+   my $VariablesFound=0;
+   for( my $i=0; $i < scalar(@InstanceDescriptionsLine); $i++){
+       local $_=$InstanceDescriptionsLine[$i];
+       if ( /($re)/ ){
+          my $v=$1;
+          $_=$InstanceDescriptionsLine[$i-1]; # Get value on previous line
+          s/^.*"Value"\s*:\s+"([^\"]*)".*$/$1/; # Remove everything but the value
+          $ValueOfCfgVariable{$v}=($v eq 'pem')? "/home/ec2-user/$_.pem" : $_; # If $v is 'pem' add '.pem' to end
+          $VariablesFound=1;
+print "DEBUG: In getCfgVariablesOfInstanceDescriptions. \$ValueOfCfgVariable{$v}=\"$ValueOfCfgVariable{$v}\"\n";
+       }
+   }
+print "DEBUG: In getCfgVariablesOfInstanceDescriptions. NO VARIABLES FOUND in instance descriptions.\n" if $VariablesFound==0;
+}
+#==========================================================================================================
 1;

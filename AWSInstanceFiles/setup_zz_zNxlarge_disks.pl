@@ -6,6 +6,10 @@ $_=`lsblk`;
 @xvdlines=grep(/\bxvd[b-z]/,@x);
 print "\@xvdlines=(",join(", ",@xvdlines),")\n";
 
+if (scalar(@ARGV) > 0 ){
+  $EBSVolume=1;
+}
+
 #----------------------------------------------------------------
 # If drives xvd[b-z] exists, then do what is needed to raid, format, and mount them
 if ( scalar(@xvdlines) >= 1 ){
@@ -63,6 +67,12 @@ if ( scalar(@xvdlines) >= 1 ){
 #   print("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems\n");
 #   system("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems");
 
+   #----------------------------------------------------------------
+   # If EBS Volumes are being mounted (instead of ephemeral), then put the mount in /etc/fstab
+   if ( $EBSVolume ){
+     # Setup so /dev/md127 is mounted on /var/lib/HPCCSystems whenever the instance is booted/started.
+     sudo su -c "echo \"/dev/md127 /var/lib/HPCCSystems xfs defaults 0 2\" >> /etc/fstab"
+   }
 }
 #----------------------------------------------------------------
 # SUBROUTINES
