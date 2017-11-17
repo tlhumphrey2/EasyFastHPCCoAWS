@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 =pod
 #Server side code
 updateEnvGenConfigurationForHPCC.pl

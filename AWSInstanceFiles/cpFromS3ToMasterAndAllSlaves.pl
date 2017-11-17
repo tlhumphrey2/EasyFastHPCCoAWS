@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # cpFromS3ToMasterAndAllSlaves.pl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
 $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 
@@ -10,7 +11,7 @@ my $bucket_basename=shift @ARGV;
 $bucket_basename = "s3://$bucket_basename" if $bucket_basename !~ /^s3:\/\//i;
 print "Bucket that files will come from is: \"$bucket_basename\"\n";
 # To cfg_BestHPCC.sh, add environment variable, FromS3Bucket.
-system("echo \"\nFromS3Bucket=$bucket_basename\" >> /home/ec2-user/cfg_BestHPCC.sh");
+system("echo \"\nFromS3Bucket=$bucket_basename\" >> $ThisDir/cfg_BestHPCC.sh");
 
 # Make sure the bucket exists. If NOT then EXIT
 system("sudo s3cmd ls $bucket_basename 2> /tmp/bucket_basename_exists.txt");
@@ -18,10 +19,10 @@ if ( `cat /tmp/bucket_basename_exists.txt` =~ /not exist/i ){
    print("In cpFromS3ToMasterAndAllSlaves.pl. FATAL ERROR. THE S3 BUCKET, $bucket_basename, DOES NOT EXISTS.\nEXITing.\n");
    exit 1;
 }
-# THE bucket exists. So, put it in the file /home/ec2-user/new_cfg_BestHPCC.sh
+# THE bucket exists. So, put it in the file $ThisDir/new_cfg_BestHPCC.sh
 else{
-   system("s3cmd get $bucket_basename/cfg_BestHPCC.sh /home/ec2-user/new_cfg_BestHPCC.sh");
-   print "FROM HPCC's configuration file has been copied from S3 bucket, $bucket_basename, (/home/ec2-user/new_cfg_BestHPCC.sh)\n";
+   system("s3cmd get $bucket_basename/cfg_BestHPCC.sh $ThisDir/new_cfg_BestHPCC.sh");
+   print "FROM HPCC's configuration file has been copied from S3 bucket, $bucket_basename, ($ThisDir/new_cfg_BestHPCC.sh)\n";
 }
 
 #-----------------------------------------------------------------------------------------------------------------------------
@@ -129,28 +130,28 @@ for( my $i=0; $i <= $non_support_instances; $i++){ # we don't do this to any rox
      $ThisInstanceFound=1;
   }
   else{
-     print("ssh -f -o stricthostkeychecking=no -t -t -i $pem ec2-user\@$ip \"stty -onlcr;sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f /home/ec2-user/cpFromS3.log;sudo perl /home/ec2-user/cpFromS3.pl $from_thor_s3_buckets \&> /home/ec2-user/cpFromS3.log\"\r\n");
-     system("ssh -f -o stricthostkeychecking=no -t -t -i $pem ec2-user\@$ip \"stty -onlcr;sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f /home/ec2-user/cpFromS3.log;sudo perl /home/ec2-user/cpFromS3.pl $from_thor_s3_buckets &> /home/ec2-user/cpFromS3.log\"");print "\r";
+     print("ssh -f -o stricthostkeychecking=no -t -t -i $pem ec2-user\@$ip \"stty -onlcr;sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f $ThisDir/cpFromS3.log;sudo perl $ThisDir/cpFromS3.pl $from_thor_s3_buckets \&> $ThisDir/cpFromS3.log\"\r\n");
+     system("ssh -f -o stricthostkeychecking=no -t -t -i $pem ec2-user\@$ip \"stty -onlcr;sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f $ThisDir/cpFromS3.log;sudo perl $ThisDir/cpFromS3.pl $from_thor_s3_buckets &> $ThisDir/cpFromS3.log\"");print "\r";
      sleep(1);
   }
 }
 
 if ( $ThisInstanceFound ){
-     print("sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f /home/ec2-user/cpFromS3.log;sudo perl /home/ec2-user/cpFromS3.pl $from_thor_s3_buckets \&> /home/ec2-user/cpFromS3.log\n\r\n");
-     system("sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f /home/ec2-user/cpFromS3.log;sudo perl /home/ec2-user/cpFromS3.pl $from_thor_s3_buckets &> /home/ec2-user/cpFromS3.log");
+     print("sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f $ThisDir/cpFromS3.log;sudo perl $ThisDir/cpFromS3.pl $from_thor_s3_buckets \&> $ThisDir/cpFromS3.log\n\r\n");
+     system("sudo rm -f $cpfs3_logname;sudo rm -f $cpfs3_DoneAlertFile;sudo rm -f $ThisDir/cpFromS3.log;sudo perl $ThisDir/cpFromS3.pl $from_thor_s3_buckets &> $ThisDir/cpFromS3.log");
      sleep(1);
 }
 
 loopUntilAllFilesCopiedFromS3();
 
 # Restore Logical Files
-print("sudo perl /home/ec2-user/RestoreLogicalFiles.pl\n");
-system("sudo perl /home/ec2-user/RestoreLogicalFiles.pl");
+print("sudo perl $ThisDir/RestoreLogicalFiles.pl\n");
+system("sudo perl $ThisDir/RestoreLogicalFiles.pl");
 #----------------------------------------------------
 #----------------------------------------------------
 sub loopUntilAllFilesCopiedFromS3{
 
-my @private_ips=split("\n",`cat /home/ec2-user/private_ips.txt`);
+my @private_ips=split("\n",`cat $ThisDir/private_ips.txt`);
 my $NumberOfInstances=scalar(@private_ips);
 #print "Entering loopUntilAllFilesCopiedFromS3. NumberOfInstances=$NumberOfInstances\n";
 my @InstanceFilesNotCopiedTo=@private_ips;
@@ -175,8 +176,8 @@ my ( @InstanceFilesNotCopiedTo )=@_;
 
   # Check every instance to see if files have been copied to S3
   foreach my $ip (@InstanceFilesNotCopiedTo){
-#     print "\$_=\`ssh -o stricthostkeychecking=no -i $pem ec2-user\@$ip \"bash /home/ec2-user/done.sh\"\`\n";
-     $_=`ssh -o stricthostkeychecking=no -i $pem ec2-user\@$ip "bash /home/ec2-user/done.sh $cpfs3_DoneAlertFile"`;
+#     print "\$_=\`ssh -o stricthostkeychecking=no -i $pem ec2-user\@$ip \"bash $ThisDir/done.sh\"\`\n";
+     $_=`ssh -o stricthostkeychecking=no -i $pem ec2-user\@$ip "bash $ThisDir/done.sh $cpfs3_DoneAlertFile"`;
      if ( /not done/ ){
         print "$ip has NOT copied its files to S3.\r\n";
         push @not_copied_instances, $ip;

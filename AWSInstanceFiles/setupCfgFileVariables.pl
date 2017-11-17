@@ -1,8 +1,12 @@
 #!/usr/bin/perl
 # THIS PROGRAM adds lines to cfg_BestHPCC.sh and creates these 3 files: instance_ids.txt, public_ips.txt, and private_ips.txt
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
+print "DEBUG: Entering setupCfgFileVariables.pl. ThisDir=\"$ThisDir\"\n";
 
-require "/home/ec2-user/getConfigurationFile.pl";
-require "/home/ec2-user/cf_common.pl";
+require "$ThisDir/getConfigurationFile.pl";
+require "$ThisDir/cf_common.pl";
+require "$ThisDir/common.pl";
+$sshuser=getSshUser();
 
 $stackname = shift @ARGV;
 $region = shift @ARGV;
@@ -63,7 +67,7 @@ else{
 #-------------------------------------------------
 # Put all configuration values in cfg_BestHoA.sh
 #-------------------------------------------------
-$cfgfile="/home/ec2-user/cfg_BestHPCC.sh";
+$cfgfile="$ThisDir/cfg_BestHPCC.sh";
 open(OUT,">>$cfgfile") || die "Can't open for append: \"$cfgfile\"\n";
 print OUT "\n";
 foreach my $cfgvar (keys %ValueOfCfgVariable){
@@ -75,7 +79,9 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
       print "DEBUG: system_password=$password\n";
       print OUT "system_password=$password\n";
    }
-   elsif ( $cfgvar eq 'HPCCPlatform' ){ # Adjust platform path based on whether version is before/after version 5.2
+   # Here we will adjust platform path based on whether version is before/after version 5.2. 
+   # Also, we will determine OS version (either 'el6' or 'el7'.
+   elsif ( $cfgvar eq 'HPCCPlatform' ){ 
       my $version = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^hpcc-platform-(.+)$/i;
       my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
       my $First2Digits = $1 if $base_version =~ /^(\d+\.\d+)/;
@@ -85,12 +91,10 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
         $platformpath="http://wpc.423A.rhocdn.net/00423A/releases/CE-Candidate-<base_version>/bin/platform";
 	print OUT "IsPlatformSixOrHigher=1\n";
       }
-      my $platformBefore5_2=($First2Digits>=6.0)? "hpccsystems-platform_community-<version>.el6.x86_64.rpm":"hpccsystems-platform_community-with-plugins-<version>.el6.x86_64.rpm";# Has underscore between platform and community  
-      my $platformAfter5_2=($First2Digits>=6.0)? "hpccsystems-platform-community_<version>.el6.x86_64.rpm":"hpccsystems-platform-community-with-plugins_<version>.el6.x86_64.rpm";# Has dash between platform and community   
+      my $platformBefore5_2=($First2Digits>=6.0)? "hpccsystems-platform_community-<version>.<osversion>.x86_64.rpm":"hpccsystems-platform_community-with-plugins-<version>.el6.x86_64.rpm";# Has underscore between platform and community  
+      my $platformAfter5_2=($First2Digits>=6.0)? "hpccsystems-platform-community_<version>.<osversion>.x86_64.rpm":"hpccsystems-platform-community-with-plugins_<version>.el6.x86_64.rpm";# Has dash between platform and community   
 print "DEBUG: First2Digits=\"$First2Digits\"\n";
       $platformpath =~ s/<base_version>/$base_version/;
-      $platformBefore5_2 =~ s/<version>/$version/;
-      $platformAfter5_2 =~ s/<version>/$version/;
       my $hpcc_platform;
       if ( $First2Digits >= 5.2 ){
          $hpcc_platform= "$platformpath/$platformAfter5_2";
@@ -100,6 +104,9 @@ print "DEBUG: First2Digits=\"$First2Digits\"\n";
          $hpcc_platform= "$platformpath/$platformBefore5_2";
 	 print "DEBUG: LT 5.2 hpcc_platform=\"$hpcc_platform\"\n";
       }
+      $hpcc_platform =~ s/<version>/$version/;
+      $osversion = getOSVersion();
+      $hpcc_platform =~ s/<osversion>/$osversion/;
       print "DEBUG: hpcc_platform=$hpcc_platform\n";
       print OUT "hpcc_platform=$hpcc_platform\n";
    }
@@ -111,4 +118,15 @@ print "DEBUG: First2Digits=\"$First2Digits\"\n";
 close(OUT);
 
 # Get and put private and public ips in their respective files
-system("perl /home/ec2-user/getPublicAndPrivateIps.pl $EIP");
+system("perl $ThisDir/getPublicAndPrivateIps.pl $EIP");
+#==============================================================================
+sub getOSVersion{
+  my $osversion='el6';
+  if ( -e "/etc/os-release" ){
+    local $_=`cat /etc/os-release`;
+    if ( /centos-7/si ){
+      $osversion='el7';
+    }
+  }
+  return $osversion;
+}

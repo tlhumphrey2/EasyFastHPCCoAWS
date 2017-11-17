@@ -1,6 +1,7 @@
 #!/usr/bin/perl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
-require "/home/ec2-user/getConfigurationFile.pl";
+require "$ThisDir/getConfigurationFile.pl";
 
 die "In associateEIPWithDSPInstance.pl. FATAL ERROR. Expected argument, i.e. an eip allocation id. None given. EXITING.\n" if scalar(@ARGV)<=0;
 

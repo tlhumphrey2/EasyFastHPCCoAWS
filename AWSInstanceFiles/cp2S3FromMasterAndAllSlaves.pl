@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # cp2S3FromMasterAndAllSlaves.pl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
 $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 
@@ -34,8 +35,8 @@ for( my $i=0; $i <= $non_support_instances; $i++){ # we don't do this to any rox
   my $ip=$private_ips[$i];
   my $bucketname = ( $i==0 )? "${bucket_basename}-master" : sprintf "${bucket_basename}-snode-%02d",$i;
   push @bucketname, $bucketname;
-  print("sudo perl /home/ec2-user/setupS3BucketForInstance.pl $bucketname\n");
-  system("sudo perl /home/ec2-user/setupS3BucketForInstance.pl $bucketname");
+  print("sudo perl $ThisDir/setupS3BucketForInstance.pl $bucketname\n");
+  system("sudo perl $ThisDir/setupS3BucketForInstance.pl $bucketname");
   sleep(1);
 }
 
@@ -52,15 +53,15 @@ for( my $i=0; $i <= $non_support_instances; $i++){ # we don't do this to any rox
      $ThisInstanceFound=1;
   }
   else{
-     print("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl \&> /home/ec2-user/cpToS3.log\"\r\n");
-     system("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl &> /home/ec2-user/cpToS3.log\"");print "\r";
+     print("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f $ThisDir/cpToS3.log;sudo perl $ThisDir/cpToS3.pl \&> $ThisDir/cpToS3.log\"\r\n");
+     system("ssh -f -o stricthostkeychecking=no -t -t -i $pem $user\@$ip \"stty -onlcr;sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f $ThisDir/cpToS3.log;sudo perl $ThisDir/cpToS3.pl &> $ThisDir/cpToS3.log\"");print "\r";
      sleep(1);
   }
 }
 
 if ( $ThisInstanceFound ){
-     print("sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl \&> /home/ec2-user/cpToS3.log\n\r\n");
-     system("sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f /home/ec2-user/cpToS3.log;sudo perl /home/ec2-user/cpToS3.pl &> /home/ec2-user/cpToS3.log");
+     print("sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f $ThisDir/cpToS3.log;sudo perl $ThisDir/cpToS3.pl \&> $ThisDir/cpToS3.log\n\r\n");
+     system("sudo rm -f $cp2s3_logname;sudo rm -f $cp2s3_DoneAlertFile;sudo rm -f $ThisDir/cpToS3.log;sudo perl $ThisDir/cpToS3.pl &> $ThisDir/cpToS3.log");
      sleep(1);
 }
 
@@ -68,29 +69,29 @@ if ( $ThisInstanceFound ){
 # To cfg_BestHPCC.sh, add FromS3Bucket and thor_s3_buckets
 #---------------------------------------------------------------------
 # To cfg_BestHPCC.sh, add environment variable, FromS3Bucket.
-system("echo \"FromS3Bucket=$bucket_basename\" >> /home/ec2-user/cfg_BestHPCC.sh");
+system("echo \"FromS3Bucket=$bucket_basename\" >> $ThisDir/cfg_BestHPCC.sh");
 
 # To cfg_BestHPCC.sh, add environment variable, thor_s3_buckets, which is a comma separated list of buckets.
 $thor_s3_buckets=join(",",@bucketname);
-system("echo \"thor_s3_buckets=$thor_s3_buckets\" >> /home/ec2-user/cfg_BestHPCC.sh");
+system("echo \"thor_s3_buckets=$thor_s3_buckets\" >> $ThisDir/cfg_BestHPCC.sh");
 
 #---------------------------------------------------------------------
 # Make the S3 bucket, $bucket_basename and put in it, cfg_BestHPCCC.sh.
 #---------------------------------------------------------------------
 # Setup/make bucket, $bucket_basename
-print("sudo perl /home/ec2-user/setupS3BucketForInstance.pl $bucket_basename\n");
-system("sudo perl /home/ec2-user/setupS3BucketForInstance.pl $bucket_basename");
+print("sudo perl $ThisDir/setupS3BucketForInstance.pl $bucket_basename\n");
+system("sudo perl $ThisDir/setupS3BucketForInstance.pl $bucket_basename");
 
 # Put cfg_BestHPCC.sh in the bucket, $bucket_basename
-print("sudo s3cmd put /home/ec2-user/cfg_BestHPCC.sh $bucket_basename\n");
-system("sudo s3cmd put /home/ec2-user/cfg_BestHPCC.sh $bucket_basename");
+print("sudo s3cmd put $ThisDir/cfg_BestHPCC.sh $bucket_basename\n");
+system("sudo s3cmd put $ThisDir/cfg_BestHPCC.sh $bucket_basename");
 
 loopUntilAllFilesCopiedToS3();
 #----------------------------------------------------
 #----------------------------------------------------
 sub loopUntilAllFilesCopiedToS3{
 
-my @private_ips=split("\n",`cat /home/ec2-user/private_ips.txt`);
+my @private_ips=split("\n",`cat $ThisDir/private_ips.txt`);
 my $NumberOfInstances=scalar(@private_ips);
 #print "Entering loopUntilAllFilesCopiedToS3. NumberOfInstances=$NumberOfInstances\n";
 my @InstanceFilesNotCopied=@private_ips;
@@ -112,7 +113,7 @@ my ( @InstanceFilesNotCopied )=@_;
 
   # Check every instance to see if files have been copied to S3
   foreach my $ip (@InstanceFilesNotCopied){
-     $_=`ssh -o stricthostkeychecking=no -i $pem ec2-user\@$ip "bash /home/ec2-user/done.sh $cp2s3_DoneAlertFile"`;
+     $_=`ssh -o stricthostkeychecking=no -i $pem ec2-user\@$ip "bash $ThisDir/done.sh $cp2s3_DoneAlertFile"`;
      if ( /not done/ ){
         print "$ip has NOT copied its files to S3.\r\n";
         push @not_copied_instances, $ip;

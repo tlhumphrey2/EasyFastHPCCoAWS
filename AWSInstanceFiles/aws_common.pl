@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 #=====================================================================
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 sub getPublicIPs{
 my ($region, @instance_id)=@_;
 my @public_ip=();

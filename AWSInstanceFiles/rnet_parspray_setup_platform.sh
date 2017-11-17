@@ -1,3 +1,4 @@
+ThisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 #!/bin/bash
 USER=hpcc
@@ -50,13 +51,13 @@ touch $MAIN_FOLDER/machines.list
 chown $USER:$USER $MAIN_FOLDER/machines.list
 if [ ! -f /home/$USER/.aws/credentials ]
 then
-	cp /home/ec2-user/credentials /home/$USER/.aws/
+	cp $ThisDir/credentials /home/$USER/.aws/
 	chown $USER:$USER /home/$USER/.aws/credentials
 fi
 sed -i 's/requiretty/!requiretty/g' /etc/sudoers
-sudo -u ec2-user /home/ec2-user/getPublicAndPrivateIps.pl
-sed -i '/^$/d' /home/ec2-user/private_ips.txt
-tail -n+2 /home/ec2-user/private_ips.txt > $MAIN_FOLDER/machines.list
+sudo -u ec2-user $ThisDir/getPublicAndPrivateIps.pl
+sed -i '/^$/d' $ThisDir/private_ips.txt
+tail -n+2 $ThisDir/private_ips.txt > $MAIN_FOLDER/machines.list
 #reverse the order to start from lower IP to higher
 sed -i '1!G;h;$!d' $MAIN_FOLDER/machines.list
 chmod +x $MAIN_FOLDER/get_*_ip.sh
@@ -66,9 +67,9 @@ echo "export PATH=\$PATH:/opt/openmpi-1.8.1/bin" >> /home/$USER/.bashrc
 export PATH=$PATH:/opt/openmpi-1.8.1/bin
 echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/openmpi-1.8.1/lib" >> /home/$USER/.bashrc
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/openmpi-1.8.1/lib
-#chmod 600 /home/ec2-user/$PEM_FILE 
-#cp /home/ec2-user/$PEM_FILE /home/$USER/.ssh/id_rsa
+#chmod 600 $ThisDir/$PEM_FILE 
+#cp $ThisDir/$PEM_FILE /home/$USER/.ssh/id_rsa
 #chown $USER:$USER  /home/$USER/.ssh/id_rsa
-cat /home/ec2-user/.ssh/authorized_keys >> /home/$USER/.ssh/authorized_keys
+cat $ThisDir/.ssh/authorized_keys >> /home/$USER/.ssh/authorized_keys
 echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
 cd $MAIN_FOLDER

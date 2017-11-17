@@ -1,18 +1,19 @@
 #!/bin/bash -e
+ThisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-. /home/ec2-user/cfg_BestHPCC.sh
+. $ThisDir/cfg_BestHPCC.sh
 
 echo "slavesPerNode=\"$slavesPerNode\""
 #----------------------------------------------------------------------------------
 # Copy version of envionment.xml setup to use https
 #----------------------------------------------------------------------------------
-echo "cp /home/ec2-user/newly_created_environment.xml $created_environment_file"
-cp /home/ec2-user/newly_created_environment.xml $created_environment_file
+echo "cp $ThisDir/newly_created_environment.xml $created_environment_file"
+cp $ThisDir/newly_created_environment.xml $created_environment_file
 
 #----------------------------------------------------------------------------------
 # If username and password is needed for system then do the follow.
 #----------------------------------------------------------------------------------
-master_ip=`head -1 /home/ec2-user/private_ips.txt`
+master_ip=`head -1 $ThisDir/private_ips.txt`
 
 # IF username and password given THEN setup so system requires them
 if  [ -n "$system_username" ] && [ -n "$system_password" ]
@@ -38,7 +39,7 @@ fi
 #----------------------------------------------------------------------------------
 # Before using hpcc-push.sh to copy new environment.xml file, $created_environment_file, to all instances, make
 #  sure the hpcc platform is installed on all instances
-perl /home/ec2-user/loopUntilHPCCPlatformInstalledOnAllInstances.pl
+perl $ThisDir/loopUntilHPCCPlatformInstalledOnAllInstances.pl
 
 # Change new environment.xml file's ownership to hpcc:hpcc
 echo "chown hpcc:hpcc $created_environment_file"
@@ -49,14 +50,13 @@ chown hpcc:hpcc $created_environment_file
 #----------------------------------------------------------------------------------
 # THIS CODE IS MY VERSION OF hpcc-push
 out_environment_file=/etc/HPCCSystems/environment.xml
-echo "perl /home/ec2-user/tlh_hpcc-push.pl $created_environment_file $out_environment_file"
-perl /home/ec2-user/tlh_hpcc-push.pl $created_environment_file $out_environment_file
+echo "perl $ThisDir/tlh_hpcc-push.pl $created_environment_file $out_environment_file"
+perl $ThisDir/tlh_hpcc-push.pl $created_environment_file $out_environment_file
 
 if [ $slavesPerNode -ne 1 ]
 then
-   echo "slavesPerNode is greater than 1. So:  execute perl /home/ec2-user/updateSystemFilesOnAllInstances.pl"
-   perl /home/ec2-user/updateSystemFilesOnAllInstances.pl
+   echo "slavesPerNode is greater than 1. So:  execute perl $ThisDir/updateSystemFilesOnAllInstances.pl"
+   perl $ThisDir/updateSystemFilesOnAllInstances.pl
 else
    echo "slavesPerNode($slavesPerNode) is equal to 1. So did not execute updateSystemFilesOnAllInstances.pl."
 fi
-

@@ -1,9 +1,10 @@
 #!/usr/bin/perl
-require "/home/ec2-user/cp2s3_common.pl";
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
+require "$ThisDir/cp2s3_common.pl";
 
 $ThisNodesPrivateIP=get_this_nodes_private_ip();
 
-require "/home/ec2-user/getConfigurationFile.pl";
+require "$ThisDir/getConfigurationFile.pl";
 
 # Get all private_ips
 open(IN,$private_ips) || die "Can't open for input: \"$private_ips\"\n";

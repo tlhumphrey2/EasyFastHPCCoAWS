@@ -1,13 +1,14 @@
 #!/usr/bin/perl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
  
-require "/home/ec2-user/getConfigurationFile.pl";
+require "$ThisDir/getConfigurationFile.pl";
 
  print "Entering getPublicAndPrivateIps.pl\n";
  
  open(IN, $instance_ids) || die "Can't open for input: \"$instance_ids\"\n";
  
- my $private_ips_file="/home/ec2-user/private_ips.txt";
- my $public_ips_file="/home/ec2-user/public_ips.txt";
+ my $private_ips_file="$ThisDir/private_ips.txt";
+ my $public_ips_file="$ThisDir/public_ips.txt";
  open(OUT1,">$private_ips_file") || die "Can't open for output: \"$private_ips_file\"\n";
  open(OUT2,">$public_ips_file") || die "Can't open for output: \"$public_ips_file\"\n";
  
@@ -40,8 +41,8 @@ require "/home/ec2-user/getConfigurationFile.pl";
     do{
        $error=0;
        print "AWS COMMAND IS: aws ec2 describe-instances --instance-ids $instance_id --region $region\n\n";
-       system("aws ec2 describe-instances --instance-ids $instance_id --region $region &> /home/ec2-user/t");
-       $_=`cat /home/ec2-user/t`;
+       system("aws ec2 describe-instances --instance-ids $instance_id --region $region &> $ThisDir/t");
+       $_=`cat $ThisDir/t`;
        $error=1 if /Unable to locate credentials/;
        sleep(2) if $error;
     } while ( $error );

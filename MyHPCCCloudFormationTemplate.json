@@ -1,22 +1,18 @@
 {
-    "Description" : "20150604 added: Make s3 bucket that contains all scripts a parameter",
-    "Description" : "20150604 added: AMI should be selected automatically depending on region.",
-    "Description" : "20150609 added: Support for ROXIE so ROXIEs are created on different instances than those having THOR slave nodes.",
-    "Description" : "20150611 added: IAM Instance Profile need to be in resources. Currently they are parameters.",
-    "Description" : "20150617 fixed: AMI id for eu-central-1 was incorrect. Fixed it.",
-    "Description" : "20150625 added: Add authentication, i.e. user-id and password",
-    "Description" : "20150629 added: We need to give user other choices for HPCC Platform (current set in cfg_BestHPCC.sh to 5.0.0-3)",
-    "Description" : "20150724 added: Added scripts that will copy in parallel THOR slave file parts and their metadata file to S3",
-    "Description" : "20150730 added: Fixed JIRA HPCC-13855. Now we only need to start the HPCC System one time AND we only need to envgen once. Therefore configure and deploy is faster",
-    "Description" : "20150820 Changed 5 files: common.pl, final_configureHPCC.pl,cp2S3FromMasterAndAllSlaves.pl,cpFromS3ToMasterAndAllSlaves.pl,MyHPCCCloudFormationTemplate.json",
-    "Description" : "20150820 Added user/pwd to dfuplus when given as CF parameter. Chged all public to private ips. Delete all log and done alert files before executing cp2 and cpFrom.",
-    "Description" : "Need: Have parameters for data s3 bucket access and secret keys and for data s3 bucket name.",
-    "Description" : "      Plus, have code that mounts bucket to dropzone if bucket name is given.",
-    "Description" : "Need: Make a different template that uses EBS volumes instead of SSD",
-    "Description" : "Need: Add descriptions of the various resources.",
-    "Description" : "Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
+    "Description" : "MyHPCCCloudFormationTemplate.json: Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
 
     "Parameters" : {
+
+        "SSHUserName" : {
+            "Description" : "The user name used to ssh into an instance",
+            "AllowedValues" : [
+                "centos",
+                "ec2-user",
+                "ubuntu"               
+                ],
+            "Type" : "String",
+            "Default" : "ec2-user"
+        },
 
         "HPCCPlatform" : {
             "Description" : "The version of the HPCC Platform to install.",
@@ -24,11 +20,16 @@
                 "HPCC-Platform-5.0.0-3",
                 "HPCC-Platform-5.0.16-1",
                 "HPCC-Platform-5.2.2-1",
-                "HPCC-Platform-5.2.4-1"
+                "HPCC-Platform-5.2.4-1",
+                "HPCC-Platform-5.4.0-1",
+                "HPCC-Platform-5.6.0-1",
+                "HPCC-Platform-5.6.4-1",
+                "HPCC-Platform-6.2.22-1"               
                 ],
-            "Default" : "HPCC-Platform-5.2.4-1",
+            "Default" : "HPCC-Platform-6.2.22-1",
             "Type" : "String"
         },
+
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
@@ -57,13 +58,13 @@
             "Default" : "6"
         },
 
-        "NumberOfRoxieNodes" : {
+        "NumberOfRoxieInstances" : {
             "Description" : "Number of Roxie nodes in deployed HPCC System",
             "Type" : "Number",
             "Default" : "0"
         },
 
-        "NumberOfSlavesPerNode" : {
+        "NumberOfSlavesPerInstance" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
             "Default" : "12"
@@ -77,12 +78,16 @@
                 "c3.2xlarge",
                 "c3.4xlarge",
                 "c3.8xlarge",
+                "r3.2xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
                 "d2.4xlarge",
-                "d2.8xlarge"
+                "d2.8xlarge",
+                "i2.2xlarge",
+                "i2.4xlarge",
+                "i2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "i2.8xlarge",
             "Type" : "String"
         },
 
@@ -94,12 +99,16 @@
                 "c3.2xlarge",
                 "c3.4xlarge",
                 "c4.8xlarge",
+                "r3.2xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
                 "d2.4xlarge",
-                "d2.8xlarge"
+                "d2.8xlarge",
+                "i2.2xlarge",
+                "i2.4xlarge",
+                "i2.8xlarge"
                 ],
-            "Default" : "d2.8xlarge",
+            "Default" : "i2.8xlarge",
             "Type" : "String"
         },
 
@@ -111,12 +120,16 @@
                 "c3.2xlarge",
                 "c3.4xlarge",
                 "c4.8xlarge",
+                "r3.2xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
                 "d2.4xlarge",
-                "d2.8xlarge"
+                "d2.8xlarge",
+                "i2.2xlarge",
+                "i2.4xlarge",
+                "i2.8xlarge"
                 ],
-            "Default" : "d2.4xlarge",
+            "Default" : "i2.8xlarge",
             "Type" : "String"
         },
 
@@ -124,18 +137,13 @@
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
             "Default" : ""
-        },
-
-        "HPCCPlacementGroup" : {
-            "Type" : "String",
-            "Description" : "Placement Group using by HPCC System",
-            "Default" : ""
         }
     },
 
     "Mappings" : {
       "RegionMap" : {
         "us-east-1" : { "64" : "ami-1ecae776" },
+        "us-east-2" : { "64" : "ami-c55673a0" },
         "us-west-2" : { "64" : "ami-e7527ed7" },
         "us-west-1" : { "64" : "ami-d114f295" },
         "eu-west-1" : { "64" : "ami-a10897d6" },
@@ -158,6 +166,13 @@
     },
     
     "Resources" : {        
+
+         "HPCCPlacementGroup" : {
+           "Type" : "AWS::EC2::PlacementGroup",
+           "Properties" : {
+             "Strategy" : "cluster"
+           }
+         },
 
          "HPCCInstanceRoles": {
             "Type": "AWS::IAM::Role",
@@ -230,7 +245,7 @@
            }
          },
         
-         "Subnet" : {
+         "HPCCSubnet" : {
           "Type" : "AWS::EC2::Subnet",
           "Properties" :  {
                   "CidrBlock": "10.0.0.0/24", 
@@ -243,7 +258,7 @@
            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
            "Properties" : {
              "RouteTableId" : { "Ref" : "PublicInternetRouteTable" },
-             "SubnetId" : { "Ref" : "Subnet" }
+             "SubnetId" : { "Ref" : "HPCCSubnet" }
            }
          },
 
@@ -261,62 +276,68 @@
                   {
                       "ToPort": 8888, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 8888
                   }, 
                   {
                       "ToPort": 9042, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 9042
                   }, 
                   {
                       "ToPort": 7000, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 7000
                   }, 
                   {
                       "ToPort": 7001, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 7001
                   }, 
                   {
                       "ToPort": 7199, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 7199
                   }, 
                   {
                       "ToPort": 9160, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 9160
                   }, 
                   {
                       "ToPort": 61620, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 61620
                   }, 
                   {
                       "ToPort": 61621, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 61621
                   }, 
                   {
                       "ToPort": 8002, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 8002
                   }, 
                   {
                       "ToPort": 8015, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 8015
+                  }, 
+                  {
+                      "ToPort": 8010, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8010
                   }, 
                   {
                       "ToPort": 8010, 
@@ -327,7 +348,7 @@
                   {
                       "ToPort": 8145, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 8145
                   }, 
                   {
@@ -337,39 +358,45 @@
                       "FromPort": 22
                   }, 
                   {
+                      "ToPort": 22, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 22
+                  }, 
+                  {
                       "ToPort": 65535, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 0
                   }, 
                   {
                       "ToPort": 8050, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 8050
                   }, 
                   {
                       "ToPort": 65535, 
                       "IpProtocol": "udp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 0
                   }, 
                   {
                       "ToPort": 8008, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 8008
                   }, 
                   {
                       "ToPort": 9876, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": 9876
                   }, 
                   {
                       "ToPort": -1, 
                       "IpProtocol": "icmp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": "10.0.0.0/16",
                       "FromPort": -1
                   }
               ], 
@@ -380,9 +407,7 @@
          "SlaveASG" : {
                         "Type" : "AWS::AutoScaling::AutoScalingGroup",
                         "Properties" : {
-                                "VPCZoneIdentifier" : [{
-                                        "Ref" : "Subnet"
-                                }],
+                                "VPCZoneIdentifier" : [{ "Ref" : "HPCCSubnet"  }],
                                 "Cooldown" : "300",
                                 "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
                                 "DesiredCapacity" : {"Ref" : "NumberOfSlaveInstances" },
@@ -404,12 +429,12 @@
                           },
                           {
                                 "Key" : "slavesPerNode",
-                                "Value" : {"Ref" : "NumberOfSlavesPerNode" },
+                                "Value" : {"Ref" : "NumberOfSlavesPerInstance" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
                                 "Key" : "roxienodes",
-                                "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "Value" : {"Ref" : "NumberOfRoxieInstances" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
@@ -542,13 +567,11 @@
                 {
                         "DeviceName": "/dev/sdy",
                         "VirtualName": "ephemeral23"
-                },
-                {
-                        "DeviceName": "/dev/sdz",
-                        "VirtualName": "ephemeral24"
                 }
                 ],
+
                 "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+
                 "UserData" : {
                     "Fn::Base64" : {
                         "Fn::Join" : ["\n",
@@ -561,20 +584,30 @@
                                 "yum -y install aws-cli",
                                 {
                                         "Fn::Join" : [
+                                                "", 
+                                                [
+                                                 "user=", 
+                                                 { "Ref" : "SSHUserName" }
+                                                ]
+                                        ]
+                                },
+                                "echo TLH: user=\"$user\"",
+                                {
+                                        "Fn::Join" : [
                                                 " ", 
                                                 [
                                                  "aws s3 cp", 
                                                  { "Ref" : "ScriptsS3BucketFolder" },
-                                                 "/home/ec2-user --recursive"
+                                                 "/home/$user --recursive"
                                                 ]
                                         ]
                                 },
-                                "chown ec2-user:ec2-user /home/ec2-user/*",
-                                "chmod 755 /home/ec2-user/*.sh",
-                                "chmod 755 /home/ec2-user/*.pl",
+                                "chown $user:$user /home/$user/*",
+                                "chmod 755 /home/$user/*.sh",
+                                "chmod 755 /home/$user/*.pl",
  
                                 "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
-                                "~ec2-user/setup_zz_zNxlarge_disks.pl",
+                                "/home/$user/setup_zz_zNxlarge_disks.pl",
                                 "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
@@ -582,7 +615,7 @@
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
-                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 "/home/$user/setupCfgFileVariables.pl", 
                                                  { "Ref": "AWS::StackName" }, 
                                                  { "Ref" : "AWS::Region" }
                                                 ]
@@ -595,7 +628,7 @@
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
-                                                 "/home/ec2-user/install_hpcc.sh", 
+                                                 "/home/$user/install_hpcc.sh", 
                                                  { "Ref" : "InstallCassandra" }
                                                 ]
                                         ]
@@ -611,17 +644,15 @@
     "RoxieASG" : {
                         "Type" : "AWS::AutoScaling::AutoScalingGroup",
                         "Properties" : {
-                                "VPCZoneIdentifier" : [{
-                                        "Ref" : "Subnet"
-                                }],
+                                "VPCZoneIdentifier" : [{ "Ref" : "HPCCSubnet"  }],
                                 "Cooldown" : "300",
                                 "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
-                                "DesiredCapacity" : {"Ref" : "NumberOfRoxieNodes" },
+                                "DesiredCapacity" : {"Ref" : "NumberOfRoxieInstances" },
                                 "HealthCheckGracePeriod" : "300",
                                 "HealthCheckType" : "EC2",
                                 "LaunchConfigurationName" : {"Ref" : "RoxieLaunchCfg" },
                                 "MaxSize" : "10",
-                                "MinSize" : {"Ref" : "NumberOfRoxieNodes" },
+                                "MinSize" : {"Ref" : "NumberOfRoxieInstances" },
                 "Tags" : [
                           {
                                 "Key" : "StackName",
@@ -635,12 +666,12 @@
                           },
                           {
                                 "Key" : "slavesPerNode",
-                                "Value" : {"Ref" : "NumberOfSlavesPerNode" },
+                                "Value" : {"Ref" : "NumberOfSlavesPerInstance" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
                                 "Key" : "roxienodes",
-                                "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "Value" : {"Ref" : "NumberOfRoxieInstances" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
@@ -773,13 +804,11 @@
                 {
                         "DeviceName": "/dev/sdy",
                         "VirtualName": "ephemeral23"
-                },
-                {
-                        "DeviceName": "/dev/sdz",
-                        "VirtualName": "ephemeral24"
                 }
                 ],
+
                 "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+
                 "UserData" : {
                     "Fn::Base64" : {
                         "Fn::Join" : ["\n",
@@ -792,20 +821,30 @@
                                 "yum -y install aws-cli",
                                 {
                                         "Fn::Join" : [
+                                                "", 
+                                                [
+                                                 "user=", 
+                                                 { "Ref" : "SSHUserName" }
+                                                ]
+                                        ]
+                                },
+                                "echo TLH: user=\"$user\"",
+                                {
+                                        "Fn::Join" : [
                                                 " ", 
                                                 [
                                                  "aws s3 cp", 
                                                  { "Ref" : "ScriptsS3BucketFolder" },
-                                                 "/home/ec2-user --recursive"
+                                                 "/home/$user --recursive"
                                                 ]
                                         ]
                                 },
-                                "chown ec2-user:ec2-user /home/ec2-user/*",
-                                "chmod 755 /home/ec2-user/*.sh",
-                                "chmod 755 /home/ec2-user/*.pl",
+                                "chown $user:$user /home/$user/*",
+                                "chmod 755 /home/$user/*.sh",
+                                "chmod 755 /home/$user/*.pl",
  
                                 "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
-                                "~ec2-user/setup_zz_zNxlarge_disks.pl",
+                                "/home/$user/setup_zz_zNxlarge_disks.pl",
                                 "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
@@ -813,7 +852,7 @@
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
-                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 "/home/$user/setupCfgFileVariables.pl", 
                                                  { "Ref": "AWS::StackName" }, 
                                                  { "Ref" : "AWS::Region" }
                                                 ]
@@ -826,7 +865,7 @@
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
-                                                 "/home/ec2-user/install_hpcc.sh", 
+                                                 "/home/$user/install_hpcc.sh", 
                                                  { "Ref" : "InstallCassandra" }
                                                 ]
                                         ]
@@ -842,9 +881,7 @@
     "MasterASG" : {
         "Type" : "AWS::AutoScaling::AutoScalingGroup",
         "Properties" : {
-                "VPCZoneIdentifier" : [{
-                        "Ref" : "Subnet"
-                }],
+                "VPCZoneIdentifier" : [{ "Ref" : "HPCCSubnet"  }],
                 "Cooldown" : "300",
                 "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
                 "DesiredCapacity" : "1",
@@ -852,7 +889,7 @@
                 "HealthCheckType" : "EC2",
                 "LaunchConfigurationName" : {"Ref" : "MasterLaunchCfg" },
                 "MaxSize" : "1",
-                "MinSize" : "1",
+                "MinSize" : "0",
                 "Tags" : [
                           {
                                 "Key" : "StackName",
@@ -866,12 +903,12 @@
                           },
                           {
                                 "Key" : "slavesPerNode",
-                                "Value" : {"Ref" : "NumberOfSlavesPerNode" },
+                                "Value" : {"Ref" : "NumberOfSlavesPerInstance" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
                                 "Key" : "roxienodes",
-                                "Value" : {"Ref" : "NumberOfRoxieNodes" },
+                                "Value" : {"Ref" : "NumberOfRoxieInstances" },
                                 "PropagateAtLaunch" : "true"
                           },
                           {
@@ -898,6 +935,7 @@
                            }
                   ]
         },
+
         "CreationPolicy": {
             "ResourceSignal": {
                 "Count": "1",
@@ -1011,13 +1049,11 @@
              {
                 "DeviceName": "/dev/sdy",
                 "VirtualName": "ephemeral23"
-             },
-             {
-                "DeviceName": "/dev/sdz",
-                "VirtualName": "ephemeral24"
              }
              ],
+
              "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+
              "UserData" : {
                     "Fn::Base64" : {
                         "Fn::Join" : ["\n",
@@ -1030,20 +1066,30 @@
                                 "yum -y install aws-cli",
                                 {
                                         "Fn::Join" : [
+                                                "", 
+                                                [
+                                                 "user=", 
+                                                 { "Ref" : "SSHUserName" }
+                                                ]
+                                        ]
+                                },
+                                "echo TLH: user=\"$user\"",
+                                {
+                                        "Fn::Join" : [
                                                 " ", 
                                                 [
                                                  "aws s3 cp", 
                                                  { "Ref" : "ScriptsS3BucketFolder" },
-                                                 "/home/ec2-user --recursive"
+                                                 "/home/$user --recursive"
                                                 ]
                                         ]
                                 },
-                                "chown ec2-user:ec2-user /home/ec2-user/*",
-                                "chmod 755 /home/ec2-user/*.sh",
-                                "chmod 755 /home/ec2-user/*.pl",
+                                "chown $user:$user /home/$user/*",
+                                "chmod 755 /home/$user/*.sh",
+                                "chmod 755 /home/$user/*.pl",
 
                                 "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
-                                "/home/ec2-user/setup_zz_zNxlarge_disks.pl",
+                                "/home/$user/setup_zz_zNxlarge_disks.pl",
                                 "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
@@ -1051,7 +1097,7 @@
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
-                                                 "/home/ec2-user/setupCfgFileVariables.pl", 
+                                                 "/home/$user/setupCfgFileVariables.pl", 
                                                  { "Ref": "AWS::StackName" }, 
                                                  { "Ref" : "AWS::Region" }
                                                 ]
@@ -1064,7 +1110,7 @@
                                         "Fn::Join" : [
                                                 " ", 
                                                 [
-                                                 "/home/ec2-user/install_hpcc.sh", 
+                                                 "/home/$user/install_hpcc.sh", 
                                                  { "Ref" : "InstallCassandra" }
                                                 ]
                                         ]
@@ -1072,18 +1118,18 @@
                                 "echo SCRIPT: completed install_hpcc.sh",
 
                                 "echo SCRIPT: starting final_configureHPCC.sh",
-                                "/home/ec2-user/final_configureHPCC.sh",
+                                "/home/$user/final_configureHPCC.sh",
                                 "echo SCRIPT: completed final_configureHPCC.sh",
 
                                 "echo SCRIPT: starting startHPCCOnAllInstances.pl",
-                                "/home/ec2-user/startHPCCOnAllInstances.pl",
+                                "/home/$user/startHPCCOnAllInstances.pl",
                                 "echo SCRIPT: completed startHPCCOnAllInstances.pl",
 
                                 "echo SCRIPT: starting cassandra if installed",
                                 {
                                    "Fn::If": [
                                                "CassandraIsInstalled",
-                                               "/home/ec2-user/startCassandraOnAllInstances.pl",
+                                               "/home/$user/startCassandraOnAllInstances.pl",
                                                "echo NOT INSTALLING Cassandra"
                                              ]
                                 },

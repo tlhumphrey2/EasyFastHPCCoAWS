@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 #cpLAFilesFromS3ToMaster.pl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
 $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 

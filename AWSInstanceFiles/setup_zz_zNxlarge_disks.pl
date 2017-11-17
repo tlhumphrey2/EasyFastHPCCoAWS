@@ -1,14 +1,13 @@
 #!/usr/bin/perl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
+require "$ThisDir/common.pl";
+$sshuser=getSshUser();
 
 # Get all devices
 $_=`lsblk`;
 @x=split("\n",$_);
 @xvdlines=grep(/\bxvd[b-z]/,@x);
 print "\@xvdlines=(",join(", ",@xvdlines),")\n";
-
-if (scalar(@ARGV) > 0 ){
-  $EBSVolume=1;
-}
 
 #----------------------------------------------------------------
 # If drives xvd[b-z] exists, then do what is needed to raid, format, and mount them
@@ -27,7 +26,7 @@ if ( scalar(@xvdlines) >= 1 ){
 
    #----------------------------------------------------------------
    # MAKE raid command which, in $raid_template, replacing <ndrives> and <driveletters> with appropriate values.
-   $raid_template="mdadm --create /dev/md0 --force --run --assume-clean --level=0 --chunk=2048 --raid-devices=<ndrives> /dev/xvd[<driveletters>]";
+   $raid_template=" mdadm --create /dev/md0 --run --assume-clean --level=0 --chunk=2048 --raid-devices=<ndrives> /dev/xvd[<driveletters>]";
    $ndrives=scalar(@drv);
    @driveletters=map(getsfx($_),@xvdlines);
    $driveletters=join('',@driveletters);
@@ -36,22 +35,28 @@ if ( scalar(@xvdlines) >= 1 ){
    s/<driveletters>/$driveletters/;
 
    #----------------------------------------------------------------
-   # Do raid
-   print("$_\n");
-   system("$_");
+   if ( scalar(@xvdlines) > 1 ){
+     # Do raid
+     print("$_\n");
+     system("$_");
+     $mountdevice="/dev/md0"
+   }
+   else{
+     my $drv=getdrv($xvdlines[0]);
+     $mountdevice="/dev/$drv"
+   }
 
    #----------------------------------------------------------------
    print(" yum install xfsprogs.x86_64 -y\n");
    system(" yum install xfsprogs.x86_64 -y");
 
    #----------------------------------------------------------------
-   # Construct XFS filesystem on /dev/md0
-   print(" mkfs.xfs /dev/md0\n");
-   system(" mkfs.xfs /dev/md0");
+   print(" mkfs.xfs $mountdevice\n");
+   system(" mkfs.xfs $mountdevice");
 
    #----------------------------------------------------------------
-   print(" mount /dev/md0 /mnt\n");
-   system(" mount /dev/md0 /mnt");
+   print(" mount $mountdevice /mnt\n");
+   system(" mount $mountdevice /mnt");
 
    #----------------------------------------------------------------
    print(" yum install bonnie++.x86_64 -y\n");
@@ -66,13 +71,6 @@ if ( scalar(@xvdlines) >= 1 ){
    system(" mkdir -p /var/lib/HPCCSystems &&  mount /dev/md0 /var/lib/HPCCSystems");
 #   print("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems\n");
 #   system("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems");
-
-   #----------------------------------------------------------------
-   # If EBS Volumes are being mounted (instead of ephemeral), then put the mount in /etc/fstab
-   if ( $EBSVolume ){
-     # Setup so /dev/md127 is mounted on /var/lib/HPCCSystems whenever the instance is booted/started.
-     sudo su -c "echo \"/dev/md127 /var/lib/HPCCSystems xfs defaults 0 2\" >> /etc/fstab"
-   }
 }
 #----------------------------------------------------------------
 # SUBROUTINES

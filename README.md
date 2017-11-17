@@ -1,11 +1,9 @@
-# HPCC System on AWS #
+Configuring and deploying an HPCC System on AWS from linux is a three-step process when using the HPCC CloudFormation template, [MyHPCCCloudFormationTemplate.json](MyHPCCCloudFormationTemplate.json), and accompanying scripts found in this repository. The three-step process is:
 
-The contents of this github repository enables one to easily configure and deploy an HPCC System on AWS that can do real work in a timely manner.
+1.  Clone the github repository https://github.com/hpcc-systems/hpcc2aws
 
-Section 2 and appendices A through D of [EasyFastHPCCOnAWS_setup.pdf](https://github.com/tlhumphrey2/EasyFastHPCCoAWS/blob/master/EasyFastHPCCOnAWS_setup.pdf) tell you how to setup so you can use an HPCC System on AWS.
+2.  Copy the scripts in AWSInstanceFiles and your ssh pem file to an S3 bucket.
 
-Once you have done the setup, you can configure and deploy an HPCC System on AWS from your Windows computer in two steps using the HPCC CloudFormation template and accompanying scripts found on github at [https://github.com/tlhumphrey2/EasyFastHPCCoAWS](https://github.com/tlhumphrey2/EasyFastHPCCoAWS). The two-step process is:
+3.  Build a stack, using CloudFormation on the AWS console, that does the rest.
 
-1.	Copy the accompanying scripts (files in AWSInstanceFiles) and your ssh pem file to an S3 bucket (see section 2 of the setup pdf).
-2.	Using CloudFormation on the AWS console, build a stack that does the rest (see section 3 of setup pdf).
-
+## Click [here](Documentation/EasyFastHPCCOnAWSLinux.pdf) to read the document that describes the details .

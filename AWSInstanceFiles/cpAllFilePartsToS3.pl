@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
 #NOTE: This code is ran on master (esp) ONLY.
 

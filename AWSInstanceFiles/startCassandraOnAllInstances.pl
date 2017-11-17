@@ -1,8 +1,11 @@
 #!/usr/bin/perl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
 print "ENTERING startCassandraOnAllInstances.pl\n";
 
-require "/home/ec2-user/getConfigurationFile.pl";
+require "$ThisDir/getConfigurationFile.pl";
+require "$ThisDir/common.pl";
+$sshuser=getSshUser();
 
 # Get all private_ips
 open(IN,$private_ips) || die "Can't open for input: \"$private_ips\"\n";

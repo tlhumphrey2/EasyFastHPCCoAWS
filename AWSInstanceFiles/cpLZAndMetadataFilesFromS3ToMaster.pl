@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 # cpLZAndMetadataFilesFromS3ToMaster.pl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
 $thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
 
@@ -29,4 +30,3 @@ system("perl $thisDir/cpMetadataFilesFromS3ToNode.pl $from_s3_bucket");
 
 system("echo \"done\" > $cpfs3_DoneAlertFile");
 printLog($cpfs3_logname,"In cpLZAndMetadataFilesFromS3ToMaster.pl. All copies from S3 completed.\n");
-

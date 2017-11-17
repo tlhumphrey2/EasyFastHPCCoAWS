@@ -1,4 +1,5 @@
 #!/bin/bash
+ThisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Entering install_s3cmd.sh"
 repo_dir=/etc/yum.repo.d
 s3tools_repo=$repo_dir/s3tools.repo
@@ -11,8 +12,8 @@ fi
 
 if [ ! -e $s3tools_repo ]
 then
-   echo "cp /home/ec2-user/s3tools.repo $s3tools_repo"
-   cp /home/ec2-user/s3tools.repo $s3tools_repo
+   echo "cp $ThisDir/s3tools.repo $s3tools_repo"
+   cp $ThisDir/s3tools.repo $s3tools_repo
 fi
 
 echo "yum -y install s3cmd"

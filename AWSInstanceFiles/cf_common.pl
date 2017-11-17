@@ -5,6 +5,9 @@
 # This routine finds all the StackNames with the prefix of $stackname_prefix
 #  that were gotten by "aws cloudformation list-stacks". Sorts then
 #  and returns 1 more than the one with the largest digits.
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
+print "DEBUG: Entering cf_common.pl. ThisDir=\"$ThisDir\"\n";
+
 sub NextStackNumber{
 my ($stackname_prefix,$region)=@_;
 $x=`aws cloudformation list-stacks --region $region`;
@@ -81,7 +84,7 @@ my ($InstanceDescriptions,@CfgVariable)=@_;
           my $v=$1;
           $_=$InstanceDescriptionsLine[$i-1]; # Get value on previous line
           s/^.*"Value"\s*:\s+"([^\"]*)".*$/$1/; # Remove everything but the value
-          $ValueOfCfgVariable{$v}=($v eq 'pem')? "/home/ec2-user/$_.pem" : $_; # If $v is 'pem' add '.pem' to end
+          $ValueOfCfgVariable{$v}=($v eq 'pem')? "$ThisDir/$_.pem" : $_; # If $v is 'pem' add '.pem' to end
           $VariablesFound=1;
 print "DEBUG: In getCfgVariablesOfInstanceDescriptions. \$ValueOfCfgVariable{$v}=\"$ValueOfCfgVariable{$v}\"\n";
        }

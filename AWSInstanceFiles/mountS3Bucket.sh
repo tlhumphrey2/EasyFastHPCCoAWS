@@ -2,6 +2,7 @@
 # mountS3Bucket.sh
 # Note. This is done after HPCC System has been fully configured and is stopped, i.e. sudo service hpcc-init stop.
 # and is is only done on the master instance.
+ThisDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # From the following configuration file, this code gets $S3_ACCESS_KEY, $S3_SECRET_KEY, and $bucket_name.
 . cfg_BestHPCC.sh

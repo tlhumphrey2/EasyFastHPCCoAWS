@@ -1,8 +1,12 @@
 #!/usr/bin/perl
 # loopUntilHPCCPlatformInstalledOnAllInstances.pl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
+$cdir=`pwd`;chomp $cdir;
+if ( ( $cdir eq '/home/ubuntu' ) || ( $cdir eq '/home/ec2-user' ) ){
+}
+$sshuser=`basename $ThisDir`;chomp $sshuser;
 
-$thisDir = ( $0 =~ /^(.+)\// )? $1 : '.';
-require "$thisDir/getConfigurationFile.pl";
+require "$ThisDir/getConfigurationFile.pl";
 
 loopUntilHPCCPlatformInstalledOnAllInstances();
 #----------------------------------------------------
@@ -34,8 +38,8 @@ my ( @InstancesPlatformNotInstalled )=@_;
 
   # Check every instance to see if files have been copied to S3
   foreach my $ip (@InstancesPlatformNotInstalled){
-     print "\$_=\`ssh -o stricthostkeychecking=no -t -t -i $pem ec2-user\@$ip \"sudo bash isPlatformInstalled.sh\"\`\n";
-     $_=`ssh -o stricthostkeychecking=no -t -t -i $pem ec2-user\@$ip "sudo bash isPlatformInstalled.sh"`;
+     print "\$_=\`ssh -o stricthostkeychecking=no -t -t -i $pem $sshuser\@$ip \"sudo bash isPlatformInstalled.sh\"\`\n";
+     $_=`ssh -o stricthostkeychecking=no -t -t -i $pem $sshuser\@$ip "sudo bash isPlatformInstalled.sh"`;
      if ( /\bNOT installed/ ){
         print "Platform is NOT installed on $ip.\r\n";
         push @not_copied_instances, $ip;

@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 #getConfigurationFile.pl
+$ThisDir=($0=~/^(.*)\//)? $1 : ".";
 
-$cfgfile="/home/ec2-user/cfg_BestHPCC.sh";
+$cfgfile="$ThisDir/cfg_BestHPCC.sh";
 open(CFG,$cfgfile) || die "Can't open for input cfgfile=\"$cfgfile\"\n";
 while(<CFG>){
    chomp;
