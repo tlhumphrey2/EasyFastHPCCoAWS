@@ -6,4 +6,4 @@ Configuring and deploying an HPCC System on AWS from linux is a three-step proce
 
 3.  Build a stack, using CloudFormation on the AWS console, that does the rest.
 
-## Click [here](Documentation/EasyFastHPCCOnAWSLinux.pdf) to read the document that describes the details .
+## Click [here](Documentation/EasyFastHPCCOnAWSLinux.pdf) to read the document that describes the process step-by-step.

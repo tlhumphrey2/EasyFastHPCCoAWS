@@ -1,4 +1,5 @@
 {
+    "Description" : "MyHPCCCloudFormationTemplate_with_RNET_ParSpray.json: Configures and deploys and HPCC System with RNET ParSpray",
     "Description" : "20150604 added: Make s3 bucket that contains all scripts a parameter",
     "Description" : "20150604 added: AMI should be selected automatically depending on region.",
     "Description" : "20150609 added: Support for ROXIE so ROXIEs are created on different instances than those having THOR slave nodes.",

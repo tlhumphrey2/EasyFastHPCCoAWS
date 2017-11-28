@@ -1,5 +1,5 @@
 {
-    "Description" : "MyHPCCCloudFormationTemplate.json: Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
+    "Description" : "MyHPCCCloudFormationTemplate.json: Configures and deploys and HPCC System.",
 
     "Parameters" : {
 
