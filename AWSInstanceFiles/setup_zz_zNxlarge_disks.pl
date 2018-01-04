@@ -67,8 +67,8 @@ if ( scalar(@xvdlines) >= 1 ){
    system(" mount -o remount -o noatime /mnt/");
 
    #----------------------------------------------------------------
-   print(" mkdir -p /var/lib/HPCCSystems &&  mount /dev/md0 /var/lib/HPCCSystems\n");
-   system(" mkdir -p /var/lib/HPCCSystems &&  mount /dev/md0 /var/lib/HPCCSystems");
+   print(" mkdir -p /var/lib/HPCCSystems &&  mount $mountdevice /var/lib/HPCCSystems\n");
+   system(" mkdir -p /var/lib/HPCCSystems &&  mount $mountdevice /var/lib/HPCCSystems");
 #   print("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems\n");
 #   system("mkdir -p /mnt/var/lib/HPCCSystems && ln -s  /mnt/var/lib/HPCCSystems  /var/lib/HPCCSystems");
 }
