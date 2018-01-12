@@ -34,7 +34,7 @@ chmod 755 *.sh
 chmod 400 your-private-key.pem
 ```
 
-6.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have "<what you should enter>":
+6.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have "\<what you should enter\>":
 
 ```
 $sshuser=”ec2-user”;                                                     
