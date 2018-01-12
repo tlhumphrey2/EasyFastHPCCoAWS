@@ -8,18 +8,14 @@ Here are the instructions for setting up a small instance that can be used to st
 
 3.  Ssh into bastion and configure the awscli with the following command:
 
-```
-aws configure
-```
+```aws configure```
 
 You will be asked to enter the following information (for Default output format just hit Return):
 
-```
-AWS Access Key ID:                            
+```AWS Access Key ID:                            
 AWS Secret Access Key:                           
 Default region name:                
-Default output format [None]:
-```
+Default output format [None]:```
 
 1.  Use the following command to download from your StopStartHPCC s3 bucket all its contents:
 
