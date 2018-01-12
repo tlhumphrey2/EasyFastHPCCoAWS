@@ -8,21 +8,25 @@ Here are the instructions for setting up a small instance that can be used to st
 
 3.  Ssh into bastion and configure the awscli with the following command:
 
-```aws configure```
+```
+aws configure
+```
 
 You will be asked to enter the following information (for Default output format just hit Return):
 
-```AWS Access Key ID:                            
+```
+AWS Access Key ID:                            
 AWS Secret Access Key:                           
 Default region name:                
-Default output format [None]:```
+Default output format [None]:
+```
 
-1.  Use the following command to download from your StopStartHPCC s3 bucket all its contents:
+4.  Use the following command to download from your StopStartHPCC s3 bucket all its contents:
 
 | aws s3 cp s3://StopStartHPCC . --recursive |
 |--------------------------------------------|
 
-1.  Do the following:
+5.  Do the following:
 
 | chmod 755 \*.pl                         
                                           
@@ -31,11 +35,11 @@ Default output format [None]:```
  chmod 400 **\<your private key file\>**  |
 |-----------------------------------------|
 
-1.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have **red**:
+6.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have **red**:
 
-| $sshuser=”ec2-user”;                                                     
-                                                                           
- \#$no\_hpcc=1;                                                            
+```
+$sshuser=”ec2-user”;                                                     
+#$no_hpcc=1;                                                            
                                                                            
  \#$EBSVolumesMountedByFstab=1;                                            
                                                                            
@@ -62,12 +66,12 @@ Default output format [None]:```
  $mountpoint=($no\_hpcc)? “/home/$sshuser/data” : “/var/lib/HPCCSystems”;  |
 |--------------------------------------------------------------------------|
 
-1.  Once ClusterInitVariables.pl has been modified, run the following command to put a list of private IPs and instance ids in private\_ips.txt and instance\_ids.txt, respectively:
+7.  Once ClusterInitVariables.pl has been modified, run the following command to put a list of private IPs and instance ids in private\_ips.txt and instance\_ids.txt, respectively:
 
 | ./ getPrivateIPs-InstanceIDs.pl |
 |---------------------------------|
 
-1.  Suspend scaling group functions – so new instances are NOT automatically created when stopping the cluster:
+8.  Suspend scaling group functions – so new instances are NOT automatically created when stopping the cluster:
 
 | ./ suspendASGProcesses.pl |
 |---------------------------|
