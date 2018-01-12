@@ -4,7 +4,7 @@ Here are the instructions for setting up a small instance that can be used to st
 
 1.  From the github repo, <https://github.com/tlhumphrey2/EasyFastHPCCoAWS>, put the contents of the StopStartHPCC folder in an s3 bucket (I call my bucket, s3://StopStartHPCC). ALSO PUT your private key file in the s3 bucket (the same one you use for the cluster).
 
-2.  Using the Amazon AMI, launch a t2.micro instance in the same VPC as your hpcc cluster. Be sure to enable public address. Plus, using the same private key file as youíre using for your cluster.
+2.  Using the Amazon AMI, launch a t2.micro instance in the same VPC as your hpcc cluster. Be sure to enable public address. Plus, using the same private key file as you‚Äôre using for your cluster.
 
 3.  Ssh into bastion and configure the awscli with the following command:
 
@@ -26,31 +26,31 @@ Default output format [None]:
 | aws s3 cp s3://StopStartHPCC . --recursive |
 |--------------------------------------------|
 
-5.  Do the following:
+5.  Do the following. And, "your-private-key.pem" should be your private key file name.
 
 ```
 chmod 755 *.pl                         
 chmod 755 *.sh                          
-chmod 400 **<your private key file>**
+chmod 400 your-private-key.pem
 ```
 
-6.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have **red**:
+6.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have "<what you should enter>":
 
 ```
-$sshuser=îec2-userî;                                                     
+$sshuser=‚Äùec2-user‚Äù;                                                     
 #$no_hpcc=1;                                                            
 #$EBSVolumesMountedByFstab=1;                                            
-#$asgfile=îasgnames.txtî;                                                
+#$asgfile=‚Äùasgnames.txt‚Äù;                                                
 #$ephemeral=1;                                                           
-$region=î**<your region>**î;                                            
-$stackname=î**<your stack name>**î;                                     
-$name=($stackname !~ /^\s*$/)? $stackname : ìtest-python3-20171110-2î;  
-$master_name=î$nameóMasterî;                                             
-$other_name=î$nameóSlave,$nameóRoxieî;                                   
-$pem=î**<the name of your private key file>**î;                         
-$private_ips_file=îprivate_ips.txtî;                                   
-$instance_id_file=îinstance_ids.txtî;                                  
-$mountpoint=($no_hpcc)? ì/home/$sshuser/dataî : ì/var/lib/HPCCSystemsî;
+$region=‚Äù<your region>‚Äù;                                            
+$stackname=‚Äù<your stack name>‚Äù;                                     
+$name=($stackname !~ /^\s*$/)? $stackname : ‚ÄúNo Name‚Äù;  
+$master_name=‚Äù$name‚ÄîMaster‚Äù;                                             
+$other_name=‚Äù$name‚ÄîSlave,$name‚ÄîRoxie‚Äù;                                   
+$pem=‚Äù<the name of your private key file>";                         
+$private_ips_file=‚Äùprivate_ips.txt‚Äù;                                   
+$instance_id_file=‚Äùinstance_ids.txt‚Äù;                                  
+$mountpoint=($no_hpcc)? ‚Äú/home/$sshuser/data‚Äù : ‚Äú/var/lib/HPCCSystems‚Äù;
 ```
 
 7.  Once ClusterInitVariables.pl has been modified, run the following command to put a list of private IPs and instance ids in private_ips.txt and instance\_ids.txt, respectively:
@@ -58,7 +58,7 @@ $mountpoint=($no_hpcc)? ì/home/$sshuser/dataî : ì/var/lib/HPCCSystemsî;
 | ./ getPrivateIPs-InstanceIDs.pl |
 |---------------------------------|
 
-8.  Suspend scaling group functions ñ so new instances are NOT automatically created when stopping the cluster:
+8.  Suspend scaling group functions ‚Äì so new instances are NOT automatically created when stopping the cluster:
 
 | ./ suspendASGProcesses.pl |
 |---------------------------|
@@ -75,5 +75,5 @@ To start the cluster and all its instances do the following:
 | ./startAllInstances.pl &\> start.log |
 |--------------------------------------|
 
-Note. It isnít necessary to pipe stderr and stdout to a log fle (like the above 2 commands). But if you have problems, it will help your isolate the problem.
+Note. It isn‚Äôt necessary to pipe stderr and stdout to a log fle (like the above 2 commands). But if you have problems, it will help your isolate the problem.
 
