@@ -55,12 +55,12 @@ $mountpoint=($no_hpcc)? “/home/$sshuser/data” : “/var/lib/HPCCSystems”;
 
 7.  Once ClusterInitVariables.pl has been modified, run the following command to put a list of private IPs and instance ids in private_ips.txt and instance\_ids.txt, respectively:
 
-| ./ getPrivateIPs-InstanceIDs.pl |
+| ./getPrivateIPs-InstanceIDs.pl |
 |---------------------------------|
 
 8.  Suspend scaling group functions – so new instances are NOT automatically created when stopping the cluster:
 
-| ./ suspendASGProcesses.pl |
+| ./suspendASGProcesses.pl |
 |---------------------------|
 
 ***So, the above is the end of the setup. ***
