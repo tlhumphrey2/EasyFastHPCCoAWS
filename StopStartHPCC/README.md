@@ -4,75 +4,61 @@ Here are the instructions for setting up a small instance that can be used to st
 
 1.  From the github repo, <https://github.com/tlhumphrey2/EasyFastHPCCoAWS>, put the contents of the StopStartHPCC folder in an s3 bucket (I call my bucket, s3://StopStartHPCC). ALSO PUT your private key file in the s3 bucket (the same one you use for the cluster).
 
-2.  Using the Amazon AMI, launch a t2.micro instance in the same VPC as your hpcc cluster. Be sure to enable public address. Plus, using the same private key file as you‚Äôre using for your cluster.
+2.  Using the Amazon AMI, launch a t2.micro instance in the same VPC as your hpcc cluster. Be sure to enable public address. Plus, using the same private key file as youíre using for your cluster.
 
 3.  Ssh into bastion and configure the awscli with the following command:
 
-| aws configure |
-|---------------|
+```
+aws configure
+```
 
 You will be asked to enter the following information (for Default output format just hit Return):
 
-| AWS Access Key ID:            
-                                
- AWS Secret Access Key:         
-                                
- Default region name:           
-                                
- Default output format [None]:  |
-|-------------------------------|
+```
+AWS Access Key ID:                            
+AWS Secret Access Key:                           
+Default region name:                
+Default output format [None]:
+```
 
-1.  Use the following command to download from your StopStartHPCC s3 bucket all its contents:
+4.  Use the following command to download from your StopStartHPCC s3 bucket all its contents:
 
 | aws s3 cp s3://StopStartHPCC . --recursive |
 |--------------------------------------------|
 
-1.  Do the following:
+5.  Do the following:
 
-| chmod 755 \*.pl                         
-                                          
- chmod 755 \*.sh                          
-                                          
- chmod 400 **\<your private key file\>**  |
-|-----------------------------------------|
+```
+chmod 755 *.pl                         
+chmod 755 *.sh                          
+chmod 400 **<your private key file>**
+```
 
-1.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have **red**:
+6.  Change ClusterInitVariables.pl like so (note: for readability, I have removed end of line comments). Place your information where I have **red**:
 
-| $sshuser=‚Äùec2-user‚Äù;                                                     
-                                                                           
- \#$no\_hpcc=1;                                                            
-                                                                           
- \#$EBSVolumesMountedByFstab=1;                                            
-                                                                           
- \#$asgfile=‚Äùasgnames.txt‚Äù;                                                
-                                                                           
- \#$ephemeral=1;                                                           
-                                                                           
- $region=‚Äù**\<your region\>**‚Äù;                                            
-                                                                           
- $stackname=‚Äù**\<your stack name\>**‚Äù;                                     
-                                                                           
- $name=($stackname !~ /^\\s\*$/)? $stackname : ‚Äútest-python3-20171110-2‚Äù;  
-                                                                           
- $master\_name=‚Äù$name‚ÄîMaster‚Äù;                                             
-                                                                           
- $other\_name=‚Äù$name‚ÄîSlave,$name‚ÄîRoxie‚Äù;                                   
-                                                                           
- $pem=‚Äù**\<the name of your private key file\>**‚Äù;                         
-                                                                           
- $private\_ips\_file=‚Äùprivate\_ips.txt‚Äù;                                   
-                                                                           
- $instance\_id\_file=‚Äùinstance\_ids.txt‚Äù;                                  
-                                                                           
- $mountpoint=($no\_hpcc)? ‚Äú/home/$sshuser/data‚Äù : ‚Äú/var/lib/HPCCSystems‚Äù;  |
-|--------------------------------------------------------------------------|
+```
+$sshuser=îec2-userî;                                                     
+#$no_hpcc=1;                                                            
+#$EBSVolumesMountedByFstab=1;                                            
+#$asgfile=îasgnames.txtî;                                                
+#$ephemeral=1;                                                           
+$region=î**<your region>**î;                                            
+$stackname=î**<your stack name>**î;                                     
+$name=($stackname !~ /^\s*$/)? $stackname : ìtest-python3-20171110-2î;  
+$master_name=î$nameóMasterî;                                             
+$other_name=î$nameóSlave,$nameóRoxieî;                                   
+$pem=î**<the name of your private key file>**î;                         
+$private_ips_file=îprivate_ips.txtî;                                   
+$instance_id_file=îinstance_ids.txtî;                                  
+$mountpoint=($no_hpcc)? ì/home/$sshuser/dataî : ì/var/lib/HPCCSystemsî;
+```
 
-1.  Once ClusterInitVariables.pl has been modified, run the following command to put a list of private IPs and instance ids in private\_ips.txt and instance\_ids.txt, respectively:
+7.  Once ClusterInitVariables.pl has been modified, run the following command to put a list of private IPs and instance ids in private_ips.txt and instance\_ids.txt, respectively:
 
 | ./ getPrivateIPs-InstanceIDs.pl |
 |---------------------------------|
 
-1.  Suspend scaling group functions ‚Äì so new instances are NOT automatically created when stopping the cluster:
+8.  Suspend scaling group functions ñ so new instances are NOT automatically created when stopping the cluster:
 
 | ./ suspendASGProcesses.pl |
 |---------------------------|
@@ -89,4 +75,5 @@ To start the cluster and all its instances do the following:
 | ./startAllInstances.pl &\> start.log |
 |--------------------------------------|
 
-Note. It isn‚Äôt necessary to pipe stderr and stdout to a log fle (like the above 2 commands). But if you have problems, it will help your isolate the problem.
+Note. It isnít necessary to pipe stderr and stdout to a log fle (like the above 2 commands). But if you have problems, it will help your isolate the problem.
+
