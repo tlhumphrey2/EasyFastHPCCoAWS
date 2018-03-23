@@ -1,0 +1,1569 @@
+{
+    "Description" : "MultiThorHPCCCloudFormationTemplate.json: Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
+
+    "Metadata" : {
+       "AWS::CloudFormation::Interface" : {
+         "ParameterGroups" : [
+           {
+             "Label" : { "default":"HPCC Systems Configuration" },
+             "Parameters" : [ "HPCCPlatform", "SlaveInstancesPerTHOR", "RoxieInstancesPerROXIE", "SlaveNodesPerInstancePerTHOR", "NumberOfSupportInstances", "ClusterInventoryFile" ]
+           },
+           {
+             "Label" : { "default":"Other Needed Parameters" },
+             "Parameters" : [ "UserNameAndPassword", "KeyPair", "InstallCassandra", "ScriptsS3BucketFolder", "SSHUserName", "InstanceType" ]
+           }
+         ],
+         "ParameterLabels" : {
+           "SlaveInstancesPerTHOR" : { "default" : "Slave Servers/THOR" },
+           "RoxieInstancesPerROXIE" : { "default" : "Roxie Servers/ROXIE" },
+           "NumberOfSupportInstances" : { "default" : "Support Instance Number" },
+           "SlaveNodesPerInstancePerTHOR" : { "default" : "SlaveNodes/Server/THOR" }
+
+         }
+      }
+    },
+
+    "Parameters" : {
+
+        "SSHUserName" : {
+            "Description" : "The user name used to ssh into an instance",
+            "Type" : "String",
+            "Default" : "ec2-user"
+        },
+
+        "HPCCPlatform" : {
+            "Description" : "The version of the HPCC Platform to install.",
+            "AllowedValues" : [
+                "HPCC-Platform-5.0.0-3",
+                "HPCC-Platform-5.0.16-1",
+                "HPCC-Platform-5.2.2-1",
+                "HPCC-Platform-5.2.4-1",
+                "HPCC-Platform-5.4.0-1",
+                "HPCC-Platform-5.6.0-1",
+                "HPCC-Platform-5.6.4-1",
+                "HPCC-Platform-6.2.22-1",               
+                "HPCC-Platform-6.4.10-1"               
+                ],
+            "Default" : "HPCC-Platform-6.4.10-1",
+            "Type" : "String"
+        },
+
+        "ScriptsS3BucketFolder" : {
+            "Type" : "String",
+            "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
+            "Default" : "s3://BestHoA/MultiThorAWSInstanceFiles"
+        },
+
+        "KeyPair" : {
+            "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
+            "Type" : "AWS::EC2::KeyPair::KeyName",
+            "Default" : "tlh_keys_us_east_2"
+        },
+
+        "InstallCassandra" : {
+            "Description" : "(Optional) YES or NO to install Cassandra",
+            "AllowedValues" : [
+                "NO",
+                "YES"
+                ],
+            "Type" : "String",
+            "Default" : "NO"
+        },
+
+        "UserNameAndPassword" : {
+            "Description" : "(Optional) Enter like: username/password Used to log into ECL Watch and ECL IDE.",
+            "Type" : "String",
+            "Default" : "NONE"
+        },
+
+        "ClusterInventoryFile" : {
+            "Description" : "CURRENTLY NO SUPPORTED",
+            "Type" : "String",
+            "Default" : "NONE"
+        },
+
+        "NumberOfSupportInstances" : {
+            "Description" : "Number of support instances. These would be used for support components.",
+            "Type" : "Number",
+            "Default" : "0"
+        },
+
+        "SlaveInstancesPerTHOR" : {
+            "Description" : "Comma separated list of slave instances for each THOR.",
+            "AllowedPattern" : "^[0-9]+(,[0-9]+)*$",
+            "Type" : "String",
+            "Default" : "1,1"
+        },
+
+        "RoxieInstancesPerROXIE" : {
+            "Description" : "Comma separated list of roxie instances for each ROXIE.",
+            "AllowedPattern" : "^[0-9]+(,[0-9]+)*$",
+            "Type" : "String",
+            "Default" : "2,2"
+        },
+
+        "SlaveNodesPerInstancePerTHOR" : {
+            "Description" : "Comma separated list of slave nodes per instance for each THOR.",
+            "AllowedPattern" : "^[0-9]+(,[0-9]+)*$",
+            "Type" : "String",
+            "Default" : "1"
+        },
+
+        "InstanceType" : {
+            "Description" : "HPCC Thor Master EC2 instance type",
+            "AllowedValues" : [
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c3.8xlarge",
+                "r3.large",
+                "r3.xlarge",
+                "r3.2xlarge",
+                "d2.xlarge",
+                "d2.2xlarge",
+                "d2.4xlarge",
+                "d2.8xlarge",
+                "i2.2xlarge",
+                "i2.4xlarge",
+                "i2.8xlarge"
+                ],
+            "Default" : "r3.xlarge",
+            "Type" : "String"
+        }
+    },
+
+    "Mappings" : {
+      "RegionMap" : {
+        "us-east-1" : { "64" : "ami-1ecae776" },
+        "us-east-2" : { "64" : "ami-c55673a0" },
+        "us-west-2" : { "64" : "ami-e7527ed7" },
+        "us-west-1" : { "64" : "ami-d114f295" },
+        "eu-west-1" : { "64" : "ami-a10897d6" },
+        "eu-central-1" : { "64" : "ami-a8221fb5" },
+        "ap-southeast-1" : { "64" : "ami-68d8e93a" },
+        "ap-southeast-2" : { "64" : "ami-cbf90ecb" },
+        "ap-northeast-1" : { "64" : "ami-fd9cecc7" },
+        "sa-east-1" : { "64" : "ami-b52890a8" }
+      }
+    },
+
+    "Conditions" : {
+
+         "CassandraIsInstalled" : {
+            "Fn::Equals": [
+               {"Ref": "InstallCassandra"},
+               "YES"
+            ]
+         }
+    },
+    
+    "Resources" : {        
+
+         "HPCCPlacementGroup" : {
+           "Type" : "AWS::EC2::PlacementGroup",
+           "Properties" : {
+             "Strategy" : "cluster"
+           }
+         },
+
+         "HPCCInstanceRoles": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+               "AssumeRolePolicyDocument": {
+                  "Version" : "2012-10-17",
+                  "Statement": [ {
+                     "Effect": "Allow",
+                     "Principal": {
+                        "Service": [ "ec2.amazonaws.com" ]
+                     },
+                     "Action": [ "sts:AssumeRole" ]
+                  } ]
+               },
+               "Path": "/",
+               "Policies": [ {
+                  "PolicyName": "root",
+                  "PolicyDocument": {
+                     "Version" : "2012-10-17",
+                     "Statement": [ {
+                        "Effect": "Allow",
+                        "Action": "*",
+                        "Resource": "*"
+                     } ]
+                  }
+                  } ]
+               }
+         },
+
+         "HPCCInstanceProfile" : {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+               "Path": "/",
+               "Roles": [ { "Ref" : "HPCCInstanceRoles" } ]
+            }
+         },
+         
+         "HPCCVpc" : {
+           "Type" : "AWS::EC2::VPC",
+           "Properties" : {
+             "CidrBlock": "10.0.0.0/16"
+           }
+         },
+         "InternetGateway" : {
+           "Type" : "AWS::EC2::InternetGateway"
+         },
+
+         "PublicInternetRoute" : {
+           "Type" : "AWS::EC2::Route",
+           "DependsOn" : [ "InternetGateway", "PublicInternetRouteTable" ] ,
+           "Properties" : {
+             "DestinationCidrBlock" : "0.0.0.0/0",
+             "GatewayId" : { "Ref" : "InternetGateway" },
+             "RouteTableId" : { "Ref" : "PublicInternetRouteTable" }
+           }
+         },
+
+         "VPCGatewayAttachment" : {
+           "Type" : "AWS::EC2::VPCGatewayAttachment",
+           "Properties" : {
+             "InternetGatewayId" : { "Ref" : "InternetGateway" },
+             "VpcId" : { "Ref" : "HPCCVpc" }
+           }
+         },
+
+         "PublicInternetRouteTable" : {
+           "Type" : "AWS::EC2::RouteTable",
+           "Properties" : {
+             "VpcId" : { "Ref" : "HPCCVpc" }
+           }
+         },
+        
+         "HPCCSubnet" : {
+          "Type" : "AWS::EC2::Subnet",
+          "Properties" :  {
+                  "CidrBlock": "10.0.0.0/24", 
+                  "VpcId": { "Ref" : "HPCCVpc" }, 
+                  "Tags": [{ "Value": "HPCC-Public-subnet","Key": "Name"}] 
+           }
+         },
+
+         "SubnetRouteTableAssociation" : {
+           "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+           "Properties" : {
+             "RouteTableId" : { "Ref" : "PublicInternetRouteTable" },
+             "SubnetId" : { "Ref" : "HPCCSubnet" }
+           }
+         },
+
+         "HPCCSecurityGroups": {
+          "Type" : "AWS::EC2::SecurityGroup",
+          "Properties" : {
+              "GroupDescription" : "The following properities are the ports that an HPCC System needs",
+              "SecurityGroupEgress": [
+                  {
+                      "IpProtocol": "-1", 
+                      "CidrIp": "0.0.0.0/0"
+                  }
+              ], 
+              "SecurityGroupIngress": [
+                  {
+                      "ToPort": 22, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "209.243.55.98/32",
+                      "FromPort": 22
+                  }, 
+                  {
+                      "ToPort": 8010, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "209.243.55.98/32",
+                      "FromPort": 8010
+                  }, 
+                  {
+                      "ToPort": 8888, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8888
+                  }, 
+                  {
+                      "ToPort": 9042, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 9042
+                  }, 
+                  {
+                      "ToPort": 7000, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 7000
+                  }, 
+                  {
+                      "ToPort": 7001, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 7001
+                  }, 
+                  {
+                      "ToPort": 7199, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 7199
+                  }, 
+                  {
+                      "ToPort": 9160, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 9160
+                  }, 
+                  {
+                      "ToPort": 61620, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 61620
+                  }, 
+                  {
+                      "ToPort": 61621, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 61621
+                  }, 
+                  {
+                      "ToPort": 8002, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8002
+                  }, 
+                  {
+                      "ToPort": 8015, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8015
+                  }, 
+                  {
+                      "ToPort": 8010, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8010
+                  }, 
+                  {
+                      "ToPort": 8145, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8145
+                  }, 
+                  {
+                      "ToPort": 22, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 22
+                  }, 
+                  {
+                      "ToPort": 65535, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 0
+                  }, 
+                  {
+                      "ToPort": 8050, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8050
+                  }, 
+                  {
+                      "ToPort": 65535, 
+                      "IpProtocol": "udp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 0
+                  }, 
+                  {
+                      "ToPort": 8008, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 8008
+                  }, 
+                  {
+                      "ToPort": 9876, 
+                      "IpProtocol": "tcp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": 9876
+                  }, 
+                  {
+                      "ToPort": -1, 
+                      "IpProtocol": "icmp", 
+                      "CidrIp": "10.0.0.0/16",
+                      "FromPort": -1
+                  }
+              ], 
+              "VpcId": { "Ref": "HPCCVpc" } 
+             }
+         },
+
+         "SupportASG" : {
+                         "Type" : "AWS::AutoScaling::AutoScalingGroup",
+                         "Properties" : {
+                                 "VPCZoneIdentifier" : [{ "Ref" : "HPCCSubnet"  }],
+                                 "Cooldown" : "300",
+                                 "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
+                                 "DesiredCapacity" : { "Fn::GetAtt": [ "ThorAndSupportInstances", "Value" ] },
+                                 "HealthCheckGracePeriod" : "300",
+                                 "HealthCheckType" : "EC2",
+                                 "LaunchConfigurationName" : {"Ref" : "SupportLaunchCfg" },
+                                 "MaxSize" : { "Fn::GetAtt": [ "ThorAndSupportInstances", "Value" ] },
+                                 "MinSize" : "0",
+                                 "Tags" : [
+                                           {
+                                                 "Key" : "StackName",
+                                                 "Value" : {"Ref" : "AWS::StackName" },
+                                                 "PropagateAtLaunch" : "true"
+                                           },
+                                           {
+                                                 "Key" : "Name",
+                                                 "Value" : {
+                                                         "Fn::Join" : ["-",
+                                                                 [{
+                                                                         "Ref" : "AWS::StackName"
+                                                                  },
+                                                                  "-Support"
+                                                                 ]]
+                                                 },
+                                                 "PropagateAtLaunch" : "true"
+                                            }
+                                   ]
+                         }
+         },
+
+         "SupportLaunchCfg" : {
+             "Type" : "AWS::AutoScaling::LaunchConfiguration",
+             "Properties" : {
+                 "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
+                 "InstanceType" : {"Ref" : "InstanceType" },
+                 "AssociatePublicIpAddress" : "true",                                
+                 "KeyName" : {"Ref" : "KeyPair" },
+                 "SecurityGroups" : [ { "Ref" : "HPCCSecurityGroups" } ],
+                 "BlockDeviceMappings" : [
+                  {
+                         "DeviceName": "/dev/sdb",
+                         "VirtualName": "ephemeral0"
+                  },
+                  {
+                         "DeviceName": "/dev/sdc",
+                         "VirtualName": "ephemeral1"
+                  }
+                 ],
+                 "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+                 "UserData" : {
+                     "Fn::Base64" : {
+                         "Fn::Join" : ["\n",
+                             ["#!/bin/bash", 
+                                 "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                                 "yum -y clean all\n",
+                                 "yum-config-manager --enable epel\n",
+                                 "yum -y update --security\n",
+                                 "yum -y update aws-cfn-bootstrap\n",
+                                 {
+                                        "Fn::Join" : [
+                                                "", 
+                                                [
+                                                 "user=", 
+                                                 { "Ref" : "SSHUserName" }
+                                                ]
+                                        ]
+                                 },
+                                 "echo TLH: user=\"$user\"",
+                                 "echo \"TLH: pip install awscli --upgrade\"\n",
+                                 "pip install awscli --upgrade\n",
+                                 {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "aws s3 cp", 
+                                                  { "Ref" : "ScriptsS3BucketFolder" },
+                                                  "/home/$user --recursive"
+                                                 ]
+                                         ]
+                                 },
+                                 "chown $user:$user /home/$user/*",
+                                 "chmod 755 /home/$user/*.sh",
+                                 "chmod 755 /home/$user/*.pl",
+                                 "chmod 400 /home/$user/*.pem",
+                                 "chown $user:$user /home/$user/ansible-envgen2/files/*",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.sh",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.pl",
+                                 "echo \"SCRIPT: start installAnsible.sh\"\n",
+                                 "/home/$user/installAnsible.sh\n",
+                                 "echo \"SCRIPT: completed installAnsible.sh\"\n",
+      
+                                 "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                 "/home/$user/setup_zz_zNxlarge_disks.pl",
+                                 "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
+                                                                 
+                                 "echo SCRIPT: starting setupMultiThorCfgFileVariables.pl",
+                                 {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/setupMultiThorCfgFileVariables.pl",
+                                                  "-sshuser",
+                                                  { "Ref" : "SSHUserName" },
+                                                  "-stackname",
+                                                  { "Ref" : "AWS::StackName" },
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-support",
+                                                  { "Ref" : "NumberOfSupportInstances" },
+                                                  "-region",
+                                                  { "Ref" : "AWS::Region" },
+                                                  "-pem",
+                                                  { "Ref" : "KeyPair" },
+                                                  "-platform",
+                                                  { "Ref" : "HPCCPlatform" },
+                                                  "-uidpwd",
+                                                  { "Ref" : "UserNameAndPassword" },
+                                                  "-s3bucket",
+                                                  { "Ref" : "ScriptsS3BucketFolder" }
+                                                 ]
+                                         ]
+                                 },
+                                 "echo SCRIPT: completed setupMultiThorCfgFileVariables.pl",
+                                                         
+                                 "echo SCRIPT: starting install_hpcc.sh",
+                                 {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/install_hpcc.sh", 
+                                                  { "Ref" : "InstallCassandra" }
+                                                 ]
+                                         ]
+                                 },
+                                 "echo SCRIPT: completed install_hpcc.sh",
+                                 
+                                 "echo SCRIPT: starting makeHPCCInventoryFileUsedByAnsible.pl",
+                                 {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/makeHPCCInventoryFileUsedByAnsible.pl",
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" }
+                                                 ]
+                                         ]
+                                 },
+                                 "echo SCRIPT: completed makeHPCCInventoryFileUsedByAnsible.pl",
+                                 
+                                 "echo SCRIPT: starting conditionallyMakeEnvironmentFileAndStartCluster.pl",
+                                 "/home/$user/conditionallyMakeEnvironmentFileAndStartCluster.pl Support",
+                                 "echo SCRIPT: completed conditionallyMakeEnvironmentFileAndStartCluster.pl"
+                                 ]
+                         ]
+                     }
+                 }
+             },
+         },
+         
+         "SlaveASG" : {
+                        "Type" : "AWS::AutoScaling::AutoScalingGroup",
+                        "Properties" : {
+                                "VPCZoneIdentifier" : [{ "Ref" : "HPCCSubnet"  }],
+                                "Cooldown" : "300",
+                                "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
+                                "DesiredCapacity" : { "Fn::GetAtt": [ "SumListOfSlaveInstances", "Value" ] },
+                                "HealthCheckGracePeriod" : "300",
+                                "HealthCheckType" : "EC2",
+                                "LaunchConfigurationName" : {"Ref" : "SlaveLaunchCfg" },
+                                "MaxSize" : { "Fn::GetAtt": [ "SumListOfSlaveInstances", "Value" ] },
+                                "MinSize" : { "Fn::GetAtt": [ "SumListOfSlaveInstances", "Value" ] },
+                                "Tags" : [
+                                          {
+                                                "Key" : "StackName",
+                                                "Value" : {"Ref" : "AWS::StackName" },
+                                                "PropagateAtLaunch" : "true"
+                                          },
+                                          {
+                                                "Key" : "Name",
+                                                "Value" : {
+                                                        "Fn::Join" : ["-",
+                                                                [{
+                                                                        "Ref" : "AWS::StackName"
+                                                                 },
+                                                                 "-Slave"
+                                                                ]]
+                                                },
+                                                "PropagateAtLaunch" : "true"
+                                           }
+                                  ]
+                        }
+        },
+                
+        "SlaveLaunchCfg" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "AssociatePublicIpAddress" : "true",                                
+                "KeyName" : {"Ref" : "KeyPair" },
+                "SecurityGroups" : [ { "Ref" : "HPCCSecurityGroups" } ],
+                "BlockDeviceMappings" : [
+                {
+                        "DeviceName": "/dev/sdb",
+                        "VirtualName": "ephemeral0"
+                },
+                {
+                        "DeviceName": "/dev/sdc",
+                        "VirtualName": "ephemeral1"
+                },
+                {
+                        "DeviceName": "/dev/sdd",
+                        "VirtualName": "ephemeral2"
+                },
+                {
+                        "DeviceName": "/dev/sde",
+                        "VirtualName": "ephemeral3"
+                },
+                {
+                        "DeviceName": "/dev/sdf",
+                        "VirtualName": "ephemeral4"
+                },
+                {
+                        "DeviceName": "/dev/sdg",
+                        "VirtualName": "ephemeral5"
+                },
+                {
+                        "DeviceName": "/dev/sdh",
+                        "VirtualName": "ephemeral6"
+                },
+                {
+                        "DeviceName": "/dev/sdi",
+                        "VirtualName": "ephemeral7"
+                },
+                {
+                        "DeviceName": "/dev/sdj",
+                        "VirtualName": "ephemeral8"
+                },
+                {
+                        "DeviceName": "/dev/sdk",
+                        "VirtualName": "ephemeral9"
+                },
+                {
+                        "DeviceName": "/dev/sdl",
+                        "VirtualName": "ephemeral10"
+                },
+                {
+                        "DeviceName": "/dev/sdm",
+                        "VirtualName": "ephemeral11"
+                },
+                {
+                        "DeviceName": "/dev/sdn",
+                        "VirtualName": "ephemeral12"
+                },
+                {
+                        "DeviceName": "/dev/sdo",
+                        "VirtualName": "ephemeral13"
+                },
+                {
+                        "DeviceName": "/dev/sdp",
+                        "VirtualName": "ephemeral14"
+                },
+                {
+                        "DeviceName": "/dev/sdq",
+                        "VirtualName": "ephemeral15"
+                },
+                {
+                        "DeviceName": "/dev/sdr",
+                        "VirtualName": "ephemeral16"
+                },
+                {
+                        "DeviceName": "/dev/sds",
+                        "VirtualName": "ephemeral17"
+                },
+                {
+                        "DeviceName": "/dev/sdt",
+                        "VirtualName": "ephemeral18"
+                },
+                {
+                        "DeviceName": "/dev/sdu",
+                        "VirtualName": "ephemeral19"
+                },
+                {
+                        "DeviceName": "/dev/sdv",
+                        "VirtualName": "ephemeral20"
+                },
+                {
+                        "DeviceName": "/dev/sdw",
+                        "VirtualName": "ephemeral21"
+                },
+                {
+                        "DeviceName": "/dev/sdx",
+                        "VirtualName": "ephemeral22"
+                },
+                {
+                        "DeviceName": "/dev/sdy",
+                        "VirtualName": "ephemeral23"
+                }
+                ],
+
+                "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+
+                "UserData" : {
+                    "Fn::Base64" : {
+                        "Fn::Join" : ["\n",
+                            ["#!/bin/bash", 
+                                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                                "yum -y clean all\n",
+                                "yum-config-manager --enable epel\n",
+                                "yum -y update --security\n",
+                                "yum -y update aws-cfn-bootstrap\n",
+                                 {
+                                        "Fn::Join" : [
+                                                "", 
+                                                [
+                                                 "user=", 
+                                                 { "Ref" : "SSHUserName" }
+                                                ]
+                                        ]
+                                 },
+                                 "echo TLH: user=\"$user\"",
+                                 "echo \"TLH: pip install awscli --upgrade\"\n",
+                                 "pip install awscli --upgrade\n",
+                                 {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "aws s3 cp", 
+                                                  { "Ref" : "ScriptsS3BucketFolder" },
+                                                  "/home/$user --recursive"
+                                                 ]
+                                         ]
+                                 },
+                                 "chown $user:$user /home/$user/*",
+                                 "chmod 755 /home/$user/*.sh",
+                                 "chmod 755 /home/$user/*.pl",
+                                 "chmod 400 /home/$user/*.pem",
+                                 "chown $user:$user /home/$user/ansible-envgen2/files/*",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.sh",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.pl",
+                                 "echo \"SCRIPT: start installAnsible.sh\"\n",
+                                 "/home/$user/installAnsible.sh\n",
+                                 "echo \"SCRIPT: completed installAnsible.sh\"\n",
+ 
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                "/home/$user/setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
+                                                                
+                                "echo SCRIPT: starting setupMultiThorCfgFileVariables.pl",
+                                {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/setupMultiThorCfgFileVariables.pl",
+                                                  "-sshuser",
+                                                  { "Ref" : "SSHUserName" },
+                                                  "-stackname",
+                                                  { "Ref" : "AWS::StackName" },
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-support",
+                                                  { "Ref" : "NumberOfSupportInstances" },
+                                                  "-region",
+                                                  { "Ref" : "AWS::Region" },
+                                                  "-pem",
+                                                  { "Ref" : "KeyPair" },
+                                                  "-platform",
+                                                  { "Ref" : "HPCCPlatform" },
+                                                  "-uidpwd",
+                                                  { "Ref" : "UserNameAndPassword" },
+                                                  "-s3bucket",
+                                                  { "Ref" : "ScriptsS3BucketFolder" }
+                                                 ]
+                                         ]
+                                },
+                                "echo SCRIPT: completed setupMultiThorCfgFileVariables.pl",
+                                                        
+                                "echo SCRIPT: starting install_hpcc.sh",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/$user/install_hpcc.sh", 
+                                                 { "Ref" : "InstallCassandra" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: completed install_hpcc.sh",
+                                 
+                                "echo SCRIPT: starting makeHPCCInventoryFileUsedByAnsible.pl",
+                                {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/makeHPCCInventoryFileUsedByAnsible.pl",
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" }
+                                                 ]
+                                         ]
+                                },
+                                "echo SCRIPT: completed makeHPCCInventoryFileUsedByAnsible.pl",
+
+                                "echo SCRIPT: starting conditionallyMakeEnvironmentFileAndStartCluster.pl",
+                                "/home/$user/conditionallyMakeEnvironmentFileAndStartCluster.pl Slave",
+                                "echo SCRIPT: completed conditionallyMakeEnvironmentFileAndStartCluster.pl"
+                                ]
+                        ]
+                    }
+                }
+            }
+    },
+
+    "RoxieASG" : {
+                        "Type" : "AWS::AutoScaling::AutoScalingGroup",
+                        "Properties" : {
+                                "VPCZoneIdentifier" : [{ "Ref" : "HPCCSubnet"  }],
+                                "Cooldown" : "300",
+                                "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
+                                "DesiredCapacity" : { "Fn::GetAtt": [ "SumListOfRoxieInstances", "Value" ] },
+                                "HealthCheckGracePeriod" : "300",
+                                "HealthCheckType" : "EC2",
+                                "LaunchConfigurationName" : {"Ref" : "RoxieLaunchCfg" },
+                                "MaxSize" : { "Fn::GetAtt": [ "SumListOfRoxieInstances", "Value" ] },
+                                "MinSize" : { "Fn::GetAtt": [ "SumListOfRoxieInstances", "Value" ] },
+                                "Tags" : [
+                                          {
+                                                "Key" : "StackName",
+                                                "Value" : {"Ref" : "AWS::StackName" },
+                                                "PropagateAtLaunch" : "true"
+                                          },
+                                          {
+                                                "Key" : "Name",
+                                                "Value" : {
+                                                        "Fn::Join" : ["-",
+                                                                [{
+                                                                        "Ref" : "AWS::StackName"
+                                                                 },
+                                                                 "-Roxie"
+                                                                ]]
+                                                },
+                                                "PropagateAtLaunch" : "true"
+                                           }
+                                  ]
+                        }
+        },
+                
+        "RoxieLaunchCfg" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
+                "InstanceType" : {"Ref" : "InstanceType" },
+                "AssociatePublicIpAddress" : "true",                                
+                "KeyName" : {"Ref" : "KeyPair" },
+                "SecurityGroups" : [ { "Ref" : "HPCCSecurityGroups" } ],
+                "BlockDeviceMappings" : [
+                {
+                        "DeviceName": "/dev/sdb",
+                        "VirtualName": "ephemeral0"
+                },
+                {
+                        "DeviceName": "/dev/sdc",
+                        "VirtualName": "ephemeral1"
+                },
+                {
+                        "DeviceName": "/dev/sdd",
+                        "VirtualName": "ephemeral2"
+                },
+                {
+                        "DeviceName": "/dev/sde",
+                        "VirtualName": "ephemeral3"
+                },
+                {
+                        "DeviceName": "/dev/sdf",
+                        "VirtualName": "ephemeral4"
+                },
+                {
+                        "DeviceName": "/dev/sdg",
+                        "VirtualName": "ephemeral5"
+                },
+                {
+                        "DeviceName": "/dev/sdh",
+                        "VirtualName": "ephemeral6"
+                },
+                {
+                        "DeviceName": "/dev/sdi",
+                        "VirtualName": "ephemeral7"
+                },
+                {
+                        "DeviceName": "/dev/sdj",
+                        "VirtualName": "ephemeral8"
+                },
+                {
+                        "DeviceName": "/dev/sdk",
+                        "VirtualName": "ephemeral9"
+                },
+                {
+                        "DeviceName": "/dev/sdl",
+                        "VirtualName": "ephemeral10"
+                },
+                {
+                        "DeviceName": "/dev/sdm",
+                        "VirtualName": "ephemeral11"
+                },
+                {
+                        "DeviceName": "/dev/sdn",
+                        "VirtualName": "ephemeral12"
+                },
+                {
+                        "DeviceName": "/dev/sdo",
+                        "VirtualName": "ephemeral13"
+                },
+                {
+                        "DeviceName": "/dev/sdp",
+                        "VirtualName": "ephemeral14"
+                },
+                {
+                        "DeviceName": "/dev/sdq",
+                        "VirtualName": "ephemeral15"
+                },
+                {
+                        "DeviceName": "/dev/sdr",
+                        "VirtualName": "ephemeral16"
+                },
+                {
+                        "DeviceName": "/dev/sds",
+                        "VirtualName": "ephemeral17"
+                },
+                {
+                        "DeviceName": "/dev/sdt",
+                        "VirtualName": "ephemeral18"
+                },
+                {
+                        "DeviceName": "/dev/sdu",
+                        "VirtualName": "ephemeral19"
+                },
+                {
+                        "DeviceName": "/dev/sdv",
+                        "VirtualName": "ephemeral20"
+                },
+                {
+                        "DeviceName": "/dev/sdw",
+                        "VirtualName": "ephemeral21"
+                },
+                {
+                        "DeviceName": "/dev/sdx",
+                        "VirtualName": "ephemeral22"
+                },
+                {
+                        "DeviceName": "/dev/sdy",
+                        "VirtualName": "ephemeral23"
+                }
+                ],
+
+                "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+
+                "UserData" : {
+                    "Fn::Base64" : {
+                        "Fn::Join" : ["\n",
+                            ["#!/bin/bash", 
+                                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                                "yum -y clean all\n",
+                                "yum-config-manager --enable epel\n",
+                                "yum -y update --security\n",
+                                "yum -y update aws-cfn-bootstrap\n",
+                                 {
+                                        "Fn::Join" : [
+                                                "", 
+                                                [
+                                                 "user=", 
+                                                 { "Ref" : "SSHUserName" }
+                                                ]
+                                        ]
+                                 },
+                                 "echo TLH: user=\"$user\"",
+                                 "echo \"TLH: pip install awscli --upgrade\"\n",
+                                 "pip install awscli --upgrade\n",
+                                 {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "aws s3 cp", 
+                                                  { "Ref" : "ScriptsS3BucketFolder" },
+                                                  "/home/$user --recursive"
+                                                 ]
+                                         ]
+                                 },
+                                 "chown $user:$user /home/$user/*",
+                                 "chmod 755 /home/$user/*.sh",
+                                 "chmod 755 /home/$user/*.pl",
+                                 "chmod 400 /home/$user/*.pem",
+                                 "chown $user:$user /home/$user/ansible-envgen2/files/*",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.sh",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.pl",
+                                 "echo \"SCRIPT: start installAnsible.sh\"\n",
+                                 "/home/$user/installAnsible.sh\n",
+                                 "echo \"SCRIPT: completed installAnsible.sh\"\n",
+ 
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                "/home/$user/setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
+                                                                
+                                "echo SCRIPT: starting setupMultiThorCfgFileVariables.pl",
+                                {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/setupMultiThorCfgFileVariables.pl",
+                                                  "-sshuser",
+                                                  { "Ref" : "SSHUserName" },
+                                                  "-stackname",
+                                                  { "Ref" : "AWS::StackName" },
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-support",
+                                                  { "Ref" : "NumberOfSupportInstances" },
+                                                  "-region",
+                                                  { "Ref" : "AWS::Region" },
+                                                  "-pem",
+                                                  { "Ref" : "KeyPair" },
+                                                  "-platform",
+                                                  { "Ref" : "HPCCPlatform" },
+                                                  "-uidpwd",
+                                                  { "Ref" : "UserNameAndPassword" },
+                                                  "-s3bucket",
+                                                  { "Ref" : "ScriptsS3BucketFolder" }
+                                                 ]
+                                         ]
+                                },
+                                "echo SCRIPT: completed setupMultiThorCfgFileVariables.pl",
+                                                        
+                                "echo SCRIPT: starting install_hpcc.sh",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/$user/install_hpcc.sh", 
+                                                 { "Ref" : "InstallCassandra" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: completed install_hpcc.sh",
+                                 
+                                "echo SCRIPT: starting makeHPCCInventoryFileUsedByAnsible.pl",
+                                {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/makeHPCCInventoryFileUsedByAnsible.pl",
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" }
+                                                 ]
+                                         ]
+                                },
+                                "echo SCRIPT: completed makeHPCCInventoryFileUsedByAnsible.pl",
+
+                                "echo SCRIPT: starting conditionallyMakeEnvironmentFileAndStartCluster.pl",
+                                "/home/$user/conditionallyMakeEnvironmentFileAndStartCluster.pl Roxie",
+                                "echo SCRIPT: completed conditionallyMakeEnvironmentFileAndStartCluster.pl"
+                                ]
+                        ]
+                    }
+                }
+            }
+    },
+
+    "MasterASG" : {
+        "Type" : "AWS::AutoScaling::AutoScalingGroup",
+        "Properties" : {
+                "VPCZoneIdentifier" : [{ "Ref" : "HPCCSubnet"  }],
+                "Cooldown" : "300",
+                "PlacementGroup" : {"Ref" : "HPCCPlacementGroup" },
+                "DesiredCapacity" : { "Fn::GetAtt": [ "SizeOfListOfSlaveInstances", "Value" ] },
+                "HealthCheckGracePeriod" : "300",
+                "HealthCheckType" : "EC2",
+                "LaunchConfigurationName" : {"Ref" : "MasterLaunchCfg" },
+                "MaxSize" : { "Fn::GetAtt": [ "SizeOfListOfSlaveInstances", "Value" ] },
+                "MinSize" : "0",
+                "Tags" : [
+                          {
+                                "Key" : "StackName",
+                                "Value" : {"Ref" : "AWS::StackName" },
+                                "PropagateAtLaunch" : "true"
+                          },
+                          {
+                                "Key" : "Name",
+                                "Value" : {
+                                        "Fn::Join" : ["-",
+                                                [{
+                                                        "Ref" : "AWS::StackName"
+                                                 },
+                                                 "-Master"
+                                                ]]
+                                },
+                                "PropagateAtLaunch" : "true"
+                           }
+                  ]
+        },
+
+        "CreationPolicy": {
+            "ResourceSignal": {
+                "Count": "1",
+                "Timeout": "PT15M"
+            }
+        }
+    },
+
+    "MasterLaunchCfg" : {
+        "Type" : "AWS::AutoScaling::LaunchConfiguration",
+        "DependsOn" : ["RoxieASG"],
+        "Properties" : {
+             "ImageId" : { "Fn::FindInMap" : [ "RegionMap", { "Ref" : "AWS::Region" }, "64"]},
+             "InstanceType" : {"Ref" : "InstanceType" },
+             "AssociatePublicIpAddress" : "true",                                
+             "KeyName" : {"Ref" : "KeyPair" },
+             "SecurityGroups" : [ { "Ref" : "HPCCSecurityGroups" } ],
+             "BlockDeviceMappings" : [
+             {
+                "DeviceName": "/dev/sdb",
+                "VirtualName": "ephemeral0"
+             },
+             {
+                "DeviceName": "/dev/sdc",
+                "VirtualName": "ephemeral1"
+             },
+             {
+                "DeviceName": "/dev/sdd",
+                "VirtualName": "ephemeral2"
+             },
+             {
+                "DeviceName": "/dev/sde",
+                "VirtualName": "ephemeral3"
+             },
+             {
+                "DeviceName": "/dev/sdf",
+                "VirtualName": "ephemeral4"
+             },
+             {
+                "DeviceName": "/dev/sdg",
+                "VirtualName": "ephemeral5"
+             },
+             {
+                "DeviceName": "/dev/sdh",
+                "VirtualName": "ephemeral6"
+             },
+             {
+                "DeviceName": "/dev/sdi",
+                "VirtualName": "ephemeral7"
+             },
+             {
+                "DeviceName": "/dev/sdj",
+                "VirtualName": "ephemeral8"
+             },
+             {
+                "DeviceName": "/dev/sdk",
+                "VirtualName": "ephemeral9"
+             },
+             {
+                "DeviceName": "/dev/sdl",
+                "VirtualName": "ephemeral10"
+             },
+             {
+                "DeviceName": "/dev/sdm",
+                "VirtualName": "ephemeral11"
+             },
+             {
+                "DeviceName": "/dev/sdn",
+                "VirtualName": "ephemeral12"
+             },
+             {
+                "DeviceName": "/dev/sdo",
+                "VirtualName": "ephemeral13"
+             },
+             {
+                "DeviceName": "/dev/sdp",
+                "VirtualName": "ephemeral14"
+             },
+             {
+                "DeviceName": "/dev/sdq",
+                "VirtualName": "ephemeral15"
+             },
+             {
+                "DeviceName": "/dev/sdr",
+                "VirtualName": "ephemeral16"
+             },
+             {
+                "DeviceName": "/dev/sds",
+                "VirtualName": "ephemeral17"
+             },
+             {
+                "DeviceName": "/dev/sdt",
+                "VirtualName": "ephemeral18"
+             },
+             {
+                "DeviceName": "/dev/sdu",
+                "VirtualName": "ephemeral19"
+             },
+             {
+                "DeviceName": "/dev/sdv",
+                "VirtualName": "ephemeral20"
+             },
+             {
+                "DeviceName": "/dev/sdw",
+                "VirtualName": "ephemeral21"
+             },
+             {
+                "DeviceName": "/dev/sdx",
+                "VirtualName": "ephemeral22"
+             },
+             {
+                "DeviceName": "/dev/sdy",
+                "VirtualName": "ephemeral23"
+             }
+             ],
+
+             "IamInstanceProfile" : {"Ref" : "HPCCInstanceProfile" },
+
+             "UserData" : {
+                    "Fn::Base64" : {
+                        "Fn::Join" : ["\n",
+                            ["#!/bin/bash", 
+                                "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1",
+                                "yum -y clean all\n",
+                                "yum-config-manager --enable epel\n",
+                                "yum -y update --security\n",
+                                "yum -y update aws-cfn-bootstrap\n",
+                                 {
+                                        "Fn::Join" : [
+                                                "", 
+                                                [
+                                                 "user=", 
+                                                 { "Ref" : "SSHUserName" }
+                                                ]
+                                        ]
+                                 },
+                                 "echo TLH: user=\"$user\"",
+                                 "echo \"TLH: pip install awscli --upgrade\"\n",
+                                 "pip install awscli --upgrade\n",
+                                 {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "aws s3 cp", 
+                                                  { "Ref" : "ScriptsS3BucketFolder" },
+                                                  "/home/$user --recursive"
+                                                 ]
+                                         ]
+                                 },
+                                 "chown $user:$user /home/$user/*",
+                                 "chmod 755 /home/$user/*.sh",
+                                 "chmod 755 /home/$user/*.pl",
+                                 "chmod 400 /home/$user/*.pem",
+                                 "chown $user:$user /home/$user/ansible-envgen2/files/*",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.sh",
+                                 "chmod 755 /home/$user/ansible-envgen2/files/*.pl",
+                                 "echo \"SCRIPT: start installAnsible.sh\"\n",
+                                 "/home/$user/installAnsible.sh\n",
+                                 "echo \"SCRIPT: completed installAnsible.sh\"\n",
+
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                "/home/$user/setup_zz_zNxlarge_disks.pl",
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
+                                                                
+                                "echo SCRIPT: starting setupMultiThorCfgFileVariables.pl",
+                                {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/setupMultiThorCfgFileVariables.pl",
+                                                  "-sshuser",
+                                                  { "Ref" : "SSHUserName" },
+                                                  "-stackname",
+                                                  { "Ref" : "AWS::StackName" },
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-support",
+                                                  { "Ref" : "NumberOfSupportInstances" },
+                                                  "-region",
+                                                  { "Ref" : "AWS::Region" },
+                                                  "-pem",
+                                                  { "Ref" : "KeyPair" },
+                                                  "-platform",
+                                                  { "Ref" : "HPCCPlatform" },
+                                                  "-uidpwd",
+                                                  { "Ref" : "UserNameAndPassword" },
+                                                  "-s3bucket",
+                                                  { "Ref" : "ScriptsS3BucketFolder" }
+                                                 ]
+                                         ]
+                                },
+                                "echo SCRIPT: completed setupMultiThorCfgFileVariables.pl",
+                                                        
+                                "echo SCRIPT: starting install_hpcc.sh",
+                                {
+                                        "Fn::Join" : [
+                                                " ", 
+                                                [
+                                                 "/home/$user/install_hpcc.sh", 
+                                                 { "Ref" : "InstallCassandra" }
+                                                ]
+                                        ]
+                                },
+                                "echo SCRIPT: completed install_hpcc.sh",
+                                 
+                                "echo SCRIPT: starting makeHPCCInventoryFileUsedByAnsible.pl",
+                                {
+                                         "Fn::Join" : [
+                                                 " ", 
+                                                 [
+                                                  "/home/$user/makeHPCCInventoryFileUsedByAnsible.pl",
+                                                  "-cfg",
+                                                  { "Ref" : "ClusterInventoryFile" },
+                                                  "-sipt",
+                                                  { "Ref" : "SlaveInstancesPerTHOR" },
+                                                  "-ripr",
+                                                  { "Ref" : "RoxieInstancesPerROXIE" },
+                                                  "-snpipt",
+                                                  { "Ref" : "SlaveNodesPerInstancePerTHOR" }
+                                                 ]
+                                         ]
+                                },
+                                "echo SCRIPT: completed makeHPCCInventoryFileUsedByAnsible.pl",
+
+                                "echo SCRIPT: starting conditionallyMakeEnvironmentFileAndStartCluster.pl",
+                                "/home/$user/conditionallyMakeEnvironmentFileAndStartCluster.pl Master",
+                                "echo SCRIPT: completed conditionallyMakeEnvironmentFileAndStartCluster.pl"
+                            ]
+                        ]
+                    }
+             }
+         }
+    },
+
+    "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                ]
+            }
+    },
+    "AddListOfNumbers": {
+            "Type": "AWS::Lambda::Function",
+            "Description" : "Sum list of numbers",
+            "Properties": {
+                "Handler": "index.handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Code": {
+                    "ZipFile": { "Fn::Join": ["", [
+                        "var response = require('cfn-response');",
+                        "function add(a, b) {",
+                        "    return a + b;",
+                        "}",
+                        "exports.handler = function(event, context) {",
+                        "  var listofnums = event.ResourceProperties.NumberList.toString();",
+                        "  var arrayofnums = listofnums.split(',').map(function(item) {",
+                        "    return parseInt(item, 10);",
+                        "  });",
+                        "  var r = arrayofnums.reduce(add, 0);",
+                        "  var result = r;",
+                        "  response.send(event, context, response.SUCCESS, {Value: result});",
+                        "};"
+                    ]]}
+                },
+                "Runtime": "nodejs6.10",
+                "Timeout" : 30
+
+            }
+    },
+    "SizeOfListOfNumbers": {
+            "Type": "AWS::Lambda::Function",
+            "Description" : "Size of list of number",
+            "Properties": {
+                "Handler": "index.handler",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                    ]
+                },
+                "Code": {
+                    "ZipFile": { "Fn::Join": ["", [
+                        "var response = require('cfn-response');",
+                        "function add(a, b) {",
+                        "    return a + b;",
+                        "}",
+                        "exports.handler = function(event, context) {",
+                        "  var listofnums = event.ResourceProperties.NumberList.toString();",
+                        "  var arrayofnums = listofnums.split(',').map(function(item) {",
+                        "    return parseInt(item, 10);",
+                        "  });",
+                        "  var result = arrayofnums.length;",
+                        "  if ( arrayofnums[0]==0 ) result = 0;",
+                        "  response.send(event, context, response.SUCCESS, {Value: result});",
+                        "};"
+                    ]]}
+                },
+                "Runtime": "nodejs6.10",
+                "Timeout" : 30
+
+            }
+    },
+    "SetSupportInstanceNumber": {
+        "Type": "AWS::Lambda::Function",
+        "Description" : "Set the number of support instances to be created.",
+        "Properties": {
+             "Handler": "index.handler",
+             "Role": {
+                "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                ]
+            },
+            "Code": {
+               "ZipFile": { "Fn::Join": ["", [
+                    "var response = require('cfn-response');",
+                    "exports.handler = function(event, context) {",
+                    "  var nsupport = parseInt(event.ResourceProperties.nSupport);",
+                    "  var listofnums = event.ResourceProperties.NumberList.toString();",
+                    "  var arrayofnums = listofnums.split(',').map(function(item) {",
+                    "    return parseInt(item, 10);",
+                    "  });",
+                    "  var result=nsupport;",
+                    "  if ( arrayofnums[0]==0 && nsupport==0) result=1;",
+                    "  response.send(event, context, response.SUCCESS, {Value: result});",
+                    "};"
+                ]]}
+            },
+            "Runtime": "nodejs6.10",
+            "Timeout" : 30
+
+        }
+    },
+    "SumListOfSlaveInstances": {
+            "Type": "Custom::Add",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "AddListOfNumbers",
+                        "Arn"
+                    ]
+                },
+                "NumberList": {"Ref" : "SlaveInstancesPerTHOR" }
+            }
+    },
+    "SizeOfListOfSlaveInstances": {
+            "Type": "Custom::Add",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "SizeOfListOfNumbers",
+                        "Arn"
+                    ]
+                },
+                "NumberList": {"Ref" : "SlaveInstancesPerTHOR" }
+            }
+    },
+    "SumListOfRoxieInstances": {
+            "Type": "Custom::Add",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": [
+                        "AddListOfNumbers",
+                        "Arn"
+                    ]
+                },
+                "NumberList": {"Ref" : "RoxieInstancesPerROXIE" }
+            }
+    },
+    "ThorAndSupportInstances": {
+        "Type": "Custom::Add",
+        "Properties": {
+            "ServiceToken": {
+                "Fn::GetAtt": [
+                    "SetSupportInstanceNumber",
+                    "Arn"
+                ]
+            },
+            "NumberList": {"Ref" : "SlaveInstancesPerTHOR" },
+            "nSupport": {"Ref" : "NumberOfSupportInstances" }
+        }
+    }
+  },
+
+  "Outputs": {
+        "NumberOfMasterInstances": {
+            "Description": "Result",
+            "Value": { "Fn::GetAtt": [ "SizeOfListOfSlaveInstances", "Value" ] }
+        },
+        "NumberOfSlaveInstances": {
+            "Description": "Result",
+            "Value": { "Fn::GetAtt": [ "SumListOfSlaveInstances", "Value" ] }
+        },
+        "NumberOfRoxieInstances": {
+            "Description": "Result",
+            "Value": { "Fn::GetAtt": [ "SumListOfRoxieInstances", "Value" ] }
+        },
+        "NumberOfSupportInstances": {
+            "Description": "Result",
+            "Value": { "Fn::GetAtt": [ "ThorAndSupportInstances", "Value" ] }
+        }
+  }
+ }

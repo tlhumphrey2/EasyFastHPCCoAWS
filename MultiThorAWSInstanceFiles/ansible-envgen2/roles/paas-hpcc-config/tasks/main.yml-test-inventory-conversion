@@ -1,0 +1,16 @@
+- debug: msg="Generate environment.xml file, i.e. {{envout}}."
+
+# tasks file for paas-hpcc-config
+- debug: msg="Configure environment.xml using {{ envtemplate }} and output to {{ envout }}"
+
+- name: Convert inventory file, {{inventory_file}}, if needed.
+  command: bash -c "{{repopath}}/files/colonvars2listvars.pl {{inventory_file}}.template"
+  register: conversion
+
+- name: Create the environment.xml using {{inventory_file}}
+  template:
+    src: "{{ envtemplate }}"
+    dest: "{{ envout }}"
+  register: environment_file
+- name: Done message
+  debug: msg="Environment File is \"{{envout}}\""

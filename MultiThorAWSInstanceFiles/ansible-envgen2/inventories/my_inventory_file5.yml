@@ -1,0 +1,54 @@
+[master]
+master_01 name="master_01"
+
+[master_01]
+10.0.0.25
+
+[thor]
+thor_01 name="thor_01" slavesPerNode="1"
+
+[thor_01]
+10.0.0.10
+
+[dropzone]
+dropzone_01 name="dropzone_01"
+
+[dropzone_01]
+10.0.0.25
+
+[dali]
+dali_01 name="dali_01"
+
+[dali_01]
+10.0.0.25
+
+[dfuserver]
+dfuserver_01 name="dfuserver_01"
+
+[dfuserver_01]
+10.0.0.25
+
+[eclcc]
+eclcc_01 name="eclcc_01"
+
+[eclcc_01]
+10.0.0.25
+
+[eclagent]
+eclagent_01 name="eclagent_01"
+
+[eclagent_01]
+10.0.0.25
+
+[eclscheduler]
+eclscheduler_01 name="eclscheduler_01"
+
+[eclscheduler_01]
+10.0.0.25
+
+[sasha]
+sasha_01 name="sasha_01"
+
+[sasha_01]
+10.0.0.25
+

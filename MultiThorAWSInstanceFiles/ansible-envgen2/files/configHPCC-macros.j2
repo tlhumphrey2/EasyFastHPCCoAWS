@@ -1,0 +1,621 @@
+{# MACRO for making a list of thenodeGroups #}
+{%macro nodeGroupList(thegroup,thenodeGroups)%}
+{% for cluster in groups[thegroup] %}
+{% if not cluster | ipaddr %}
+{%  if hostvars[cluster]['nodeGroup'] is defined %}
+{%   if thenodeGroups.append(hostvars[cluster]['nodeGroup'])%}{%endif %}
+{%  else %} 
+{%   if (hostvars[cluster]['name'] is not defined) %}
+ANSIBLE TEMPLATE ERROR: HAPPENED IN MACRO nodeGroupList. IN THE CODE, THE STATEMENT FOLLOWING THIS ERROR MESSAGE (by the way it is commented out) CANNOT BE EXECUTED. DON'T KNOW WHY. WORK AROUND IS ADD name for each THOR and ROXIE in your inventory file.
+{#{%     if thenodeGroups.append(cluster)%}{%endif%}#}
+{%   else %} 
+{%    if (hostvars[cluster]['name'] not in thenodeGroups) %}
+{%     if thenodeGroups.append(hostvars[cluster]['name'])%}{%endif %}
+{%    endif %}
+{%   endif %}
+{%  endif %}
+{% endif %}
+{%endfor %}
+{%endmacro%}
+
+{# MACRO for making a list of clusters that are in a nodeGroup #}
+{%macro ListOfClustersInNodeGroup(mynodeGroup,theGroup,ClustersInThisNodeGroup)%}
+{% for cluster in groups[theGroup] %}
+{% if ( hostvars[cluster]['nodeGroup'] is defined ) and (hostvars[cluster]['nodeGroup']==mynodeGroup) %}
+{%if ClustersInThisNodeGroup.append(cluster)%}{%endif %}
+{% elif ( hostvars[cluster]['name'] is defined ) and (hostvars[cluster]['name']==mynodeGroup) %}
+{%if ClustersInThisNodeGroup.append(cluster)%}{%endif %}
+{% elif (theGroup=='thor') and ('mythor'==mynodeGroup) %}
+{%if ClustersInThisNodeGroup.append(cluster)%}{%endif %}
+{% elif (theGroup=='roxie') and ('myroxie'==mynodeGroup) %}
+{%if ClustersInThisNodeGroup.append(cluster)%}{%endif %}
+{% endif %}
+{% endfor %}
+{%endmacro%}
+
+{# MACRO insertProcess_IsInList #}
+{% macro insertProcess_IsInList(thelistname,thelist,mycluster,clustervar,eclagents,eclschedulers,eclservers,eclccs) %}
+{#DEBUG Entering insertProcess_IsInList.#}
+{% if (groups[mycluster] is defined) and (hostvars[mycluster][clustervar] is defined) %}
+{{IsInList(thelistname,thelist, hostvars[mycluster][clustervar], mycluster)}}
+{% endif %}
+{% endmacro %}
+
+{# MACRO to insert a process into Topology#}
+{% macro insertProcess(process,processvar,mycluster,eclagents,eclschedulers,eclservers,eclccs) %}
+{#DEBUG: Entering insertProcess. Starting to execute "insertProcess_IsInList".#}
+{% if process=='EclAgentProcess' %}
+{% set thisprocess=eclagents[0] %}
+{#DEBUG: In insertProcess. Saw EclAgentProcess. process="{{process}}", processvar="{{processvar}}", mycluster="{{mycluster}}".#}
+{{insertProcess_IsInList('eclagents',eclagents, mycluster, processvar,eclagents,eclschedulers,eclservers,eclccs)}}
+{% elif process=='EclSchedulerProcess' %}
+{% set thisprocess=eclschedulers[0] %}
+{#DEBUG: In insertProcess. Saw EclSchedulerProcess. process="{{process}}", processvar="{{processvar}}", mycluster="{{mycluster}}".#}
+{{insertProcess_IsInList('eclschedulers',eclschedulers, mycluster, processvar,eclagents,eclschedulers,eclservers,eclccs)}}
+{% elif process=='EclServerProcess' %}
+{% set thisprocess=eclservers[0] %}
+{#DEBUG: In insertProcess. Saw EclServerProcess. process="{{process}}", processvar="{{processvar}}", mycluster="{{mycluster}}".#}
+{{insertProcess_IsInList('eclservers',eclservers, mycluster, processvar,eclagents,eclschedulers,eclservers,eclccs)}}
+{% elif process=='EclCCServerProcess' %}
+{% set thisprocess=eclccs[0] %}
+{#DEBUG: In insertProcess. Saw EclCCServerProcess. process="{{process}}", processvar="{{processvar}}", mycluster="{{mycluster}}".#}
+{{insertProcess_IsInList('eclccs',eclccs, mycluster, processvar,eclagents,eclschedulers,eclservers,eclccs)}}
+{% endif %}
+{#DEBUG: In insertProcess. Completed execution of "insertProcess_IsInList".#}
+
+{#DEBUG: In insertProcess. Before inserting processes. mycluster="{{mycluster}}" processvar="{{processvar}}".#}
+{% if ( ((mycluster=='hthor') and (groups[mycluster] is defined)) or (mycluster!='hthor')) and (hostvars[mycluster] is defined) %}
+ {% if (hostvars[mycluster][processvar] is defined) %}
+{#DEBUG: In insertProcess. mycluster="{{mycluster}}" --1--.#}
+    <{{process}} process="{{hostvars[mycluster][processvar]}}"/>
+ {% else %}
+{#DEBUG: In insertProcess. mycluster="{{mycluster}}" ELSE statement.#}
+  {% if (hostvars[mycluster]['eclagent'] is not defined) and (hostvars[mycluster]['eclserver'] is not defined) and (hostvars[mycluster]['eclcc'] is not defined) and (hostvars[mycluster]['eclscheduler'] is not defined) %}
+{#DEBUG: In insertProcess. mycluster="{{mycluster}}" --2--.#}
+    <{{process}} process="{{thisprocess}}"/>
+  {% endif %}
+ {% endif %}
+{% else %}
+{#DEBUG: In insertProcess. mycluster="{{mycluster}}" --3--.#}
+    <{{process}} process="{{thisprocess}}"/>
+{% endif %}
+{% endmacro %}
+
+{# MACRO for defining EclServer or EclCC Process #}
+{% macro insertEclServerOrEclCCProcess(mycluster,eclagents,eclschedulers,eclservers,eclccs) %}
+{#DEBUG Entering insertEclServerOrEclCCProcess.#}
+{% if ((groups['eclcc'] is not defined) and (eclccs==[])) and (groups['eclserver'] is defined) %}
+{{insertProcess('EclServerProcess','eclserver',mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{% else %}
+{#DEBUG: In insertEclServerOrEclCCProcess. Just before insertProcess(EclCCServerProcess...#}
+{{insertProcess('EclCCServerProcess','eclccserver',mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{% endif %}
+{% endmacro %}
+
+{# MACRO for defining Topology Processes for clusters #}
+{#   mac.defineProcesses('thor',athorofnodegroup,eclagents,eclschedulers,eclservers,eclccs)#}
+{% macro defineProcesses(mygroup,mynodeGroup,eclagents,eclschedulers,eclservers,eclccs) %}
+{#DEBUG Entering defineProcesses.#}
+{% if mygroup == 'thor' %}
+{#DEBUG: In defineProcesses. Saw 'thor'. mynodeGroup[0]="{{mynodeGroup[0]}}".#}
+{% set ThorsInNodeGroup=[] %}
+{{ListOfClustersInNodeGroup(mynodeGroup,'thor',ThorsInNodeGroup)}}
+{% set mycluster=ThorsInNodeGroup[0]%}
+{{insertProcess('EclAgentProcess','eclagent',mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{{insertEclServerOrEclCCProcess(mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{{insertProcess('EclSchedulerProcess','eclscheduler',mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{% elif mygroup == 'hthor' %}
+{#DEBUG: In defineProcesses. Saw 'hthor'. mynodeGroup[0]="{{mynodeGroup[0]}}".#}
+{% set mycluster=mynodeGroup[0]%}
+{{insertProcess('EclAgentProcess','eclagent',mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{{insertEclServerOrEclCCProcess(mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{{insertProcess('EclSchedulerProcess','eclscheduler',mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{% elif mygroup == 'roxie' %}
+{#DEBUG: In defineProcesses. Saw 'roxie'. mynodeGroup[0]="{{mynodeGroup[0]}}".#}
+{% set RoxiesInNodeGroup=[] %}
+{{ListOfClustersInNodeGroup(mynodeGroup,'roxie',RoxiesInNodeGroup)}}
+{% set mycluster=RoxiesInNodeGroup[0]%}
+{{insertEclServerOrEclCCProcess(mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{{insertProcess('EclSchedulerProcess','eclscheduler',mycluster,eclagents,eclschedulers,eclservers,eclccs)}}
+{% endif %}
+{% endmacro %}
+
+{# MACRO for defining Thor or Roxie clusters in Topology #}
+{% macro defineClusters(mygroup,mynodeGroup) %}
+{% if mygroup == 'thor' %}
+{% set ThorsInNodeGroup=[] %}
+{{ListOfClustersInNodeGroup(mynodeGroup,'thor',ThorsInNodeGroup)}}
+{% for mythor in ThorsInNodeGroup %}
+{% if (groups['topology-overrides'] is not defined) or (hostvars[mythor]['name'] not in groups['topology-overrides']) or (mynodeGroup == hostvars[mythor]['name']) or (mynodeGroup=='mythor') %}
+{% set ctype='thor'|capitalize %}
+{% if hostvars[mythor]['name'] is defined %}
+{% set processname=hostvars[mythor]['name'] %}
+{% else %}
+{% set processname='mythor' %}
+{% endif %}
+    <{{ctype}}Cluster process="{{ processname }}"/>
+{% endif %}
+{% endfor %}
+{% elif mygroup == 'roxie' %}
+{% set RoxiesInNodeGroup=[] %}
+{{ListOfClustersInNodeGroup(mynodeGroup,'roxie',RoxiesInNodeGroup)}}
+{% for myroxie in RoxiesInNodeGroup %}
+{% if (groups['topology-overrides'] is not defined) or ( myroxie not in groups['topology-overrides']) %}
+{% set ctype='roxie'|capitalize %}
+{% if hostvars[myroxie]['name'] is defined %}
+{% set processname=hostvars[myroxie]['name'] %}
+{% else %}
+{% set processname='myroxie' %}
+{% endif %}
+    <{{ctype}}Cluster process="{{ processname }}"/>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
+{# MACRO For populating lists #}
+{%macro populateList(listtype,thelist,variablename,defaults)%}
+{#DEBUG: Entering populateList. listtype="{{listtype}}", variablename="{{variablename}}", defaults="{{defaults}}".#} 
+{% if (groups[listtype] is defined)%}
+{%for s in groups[listtype]%}
+{#DEBUG: In populateList. s="{{s}}".#} 
+{% if hostvars[s][variablename] is defined %}
+{%if thelist.append(hostvars[s][variablename])%}{%endif%}
+{% else %}
+{%if thelist.append(s)%}{%endif%}
+{% endif %}
+{%endfor%}
+{% else %}
+{%for s in defaults%}{%if thelist.append(s)%}{%endif%}{%endfor%}
+{% endif %}
+{#DEBUG: Leaving poplutateList. listtype="{{listtype}}". thelist="{{thelist}}".#}
+{%endmacro%}
+
+{%macro IsInList(thelistname, thelist, s2check, attribute)%}
+{#DEBUG: Entering IsInList. thelistname="{{thelistname}}", thelist="{{thelist}}", s2check="{{s2check}}".#}
+{% if s2check not in thelist %}
+ANSIBLE TEMPLATE ERROR: FOR "{{attribute}}", "{{s2check}}" was NOT in {{thelistname}}.
+{% endif %}
+{%endmacro%}
+
+{%macro AddToList(thelistname, thelist, s2add, attribute)%}
+{#DEBUG: Entering AddToList. thelistname="{{thelistname}}", thelist="{{thelist}}", s2add="{{s2add}}".#}
+{% if thelist is defined %}
+{%if thelist.append(s2add)%}{%endif %}
+{% else %}
+ANSIBLE TEMPLATE ERROR: FOR "{{attribute}}", "{{s2add}}" could NOT be added to {{thelistname}}.
+{% endif %}
+{%endmacro%}
+
+{%macro REQUIRED(prefixtext,component_name,variable,suffix='',thelist=[])%}
+{%if (hostvars[component_name] is defined) and (hostvars[component_name][variable] is defined)%}
+{{prefixtext}}{{variable}}="{{ hostvars[component_name][variable] }}"{{suffix}}
+{%elif (thelist is defined) and (thelist != []) %}
+{{prefixtext}}{{variable}}="{{thelist[0]}}"{{suffix}}
+{%else%}
+{{prefixtext}}{{variable}}="?????????????"{{suffix}}
+ANSIBLE TEMPLATE ERROR: IN INVENTORY FILE, NO "{{variable}}" GIVEN FOR component "{{component_name}}"{%endif%}
+{%endmacro%}
+
+{%macro DEFAULT(prefixtext,component_name,variable,dvalue,suffix='')%}
+{%if (hostvars[component_name] is defined) and (hostvars[component_name][variable] is defined)%}
+{{prefixtext}}{{variable}}="{{ hostvars[component_name][variable] }}"{{suffix}}
+{%else%}
+{{prefixtext}}{{variable}}="{{dvalue}}"{{suffix}}
+{%endif%}
+{%endmacro%}
+
+{%macro OMIT(prefixtext,component_name,variable,suffix='')%}
+{%if (hostvars[component_name] is defined) and (hostvars[component_name][variable] is defined)%}
+{% if variable == 'umask' %}
+{% set v='%03d'|format(hostvars[component_name][variable]) %}
+{% else %}
+{% set v=hostvars[component_name][variable]|string %}
+{% endif %}
+{{"\n"}}{{prefixtext}}{{variable}}="{{ v }}"{{suffix}}
+{% elif not prefixtext | search("^             *") %}
+{{"\n"}}{{prefixtext}}
+{%else%}
+{{prefixtext}}{{suffix}}
+{%endif%}
+{%endmacro%}
+
+{%macro processfilters()%}
+    <ProcessFilters>
+     <Platform name="Windows">
+      <ProcessFilter name="any">
+       <Process name="dafilesrv"/>
+      </ProcessFilter>
+      <ProcessFilter name="AttrServerProcess">
+       <Process name="attrserver"/>
+      </ProcessFilter>
+      <ProcessFilter name="DaliProcess">
+       <Process name="daserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="DfuServerProcess">
+       <Process name="dfuserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="EclCCServerProcess">
+       <Process name="eclccserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="EclServerProcess">
+       <Process name="eclserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="EspProcess">
+       <Process name="esp"/>
+       <Process name="dafilesrv" remove="true"/>
+      </ProcessFilter>
+      <ProcessFilter name="FTSlaveProcess">
+       <Process name="ftslave"/>
+      </ProcessFilter>
+      <ProcessFilter name="RoxieServerProcess">
+       <Process name="roxie"/>
+      </ProcessFilter>
+      <ProcessFilter name="RoxieSlaveProcess">
+       <Process name="roxie"/>
+      </ProcessFilter>
+      <ProcessFilter name="SchedulerProcess">
+       <Process name="scheduler"/>
+      </ProcessFilter>
+      <ProcessFilter name="ThorMasterProcess">
+       <Process name="thormaster"/>
+      </ProcessFilter>
+      <ProcessFilter name="ThorSlaveProcess">
+       <Process name="thorslave"/>
+      </ProcessFilter>
+      <ProcessFilter name="SashaServerProcess">
+       <Process name="saserver"/>
+      </ProcessFilter>
+     </Platform>
+     <Platform name="Linux">
+      <ProcessFilter name="any">
+       <Process name="dafilesrv"/>
+      </ProcessFilter>
+      <ProcessFilter name="AttrServerProcess">
+       <Process name="attrserver"/>
+      </ProcessFilter>
+      <ProcessFilter name="DaliProcess">
+       <Process name="daserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="DfuServerProcess">
+       <Process name="dfuserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="EclCCServerProcess">
+       <Process name="eclccserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="EclServerProcess">
+       <Process name="eclserver"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="EspProcess">
+       <Process name="esp"/>
+       <Process name="dafilesrv" remove="true"/>
+      </ProcessFilter>
+      <ProcessFilter name="FTSlaveProcess">
+       <Process name="ftslave"/>
+      </ProcessFilter>
+      <ProcessFilter name="GenesisServerProcess">
+       <Process name="mysql"/>
+       <Process name="httpd"/>
+       <Process name="atftpd"/>
+       <Process name="dhcpd"/>
+      </ProcessFilter>
+      <ProcessFilter name="RoxieServerProcess">
+       <Process name="roxie"/>
+      </ProcessFilter>
+      <ProcessFilter name="RoxieSlaveProcess">
+       <Process name="roxie"/>
+      </ProcessFilter>
+      <ProcessFilter name="SchedulerProcess">
+       <Process name="scheduler"/>
+      </ProcessFilter>
+      <ProcessFilter name="ThorMasterProcess">
+       <Process name="thormaster"/>
+      </ProcessFilter>
+      <ProcessFilter name="ThorSlaveProcess">
+       <Process name="thorslave"/>
+      </ProcessFilter>
+      <ProcessFilter name="SashaServerProcess">
+       <Process name="saserver"/>
+      </ProcessFilter>
+     </Platform>
+    </ProcessFilters>
+{%endmacro%}
+
+{% macro espsmc_service_afeatures() %}
+    <AuthenticateFeature description="Access to SMC service"
+                         path="SmcAccess"
+                         resource="SmcAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature description="Access to thor queues"
+                         path="ThorQueueAccess"
+                         resource="ThorQueueAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature description="Access to roxie control commands"
+                         path="RoxieControlAccess"
+                         resource="RoxieControlAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature description="Access to super computer environment"
+                         path="ConfigAccess"
+                         resource="ConfigAccess"
+                         service="ws_config"/>
+    <AuthenticateFeature description="Access to DFU"
+                         path="DfuAccess"
+                         resource="DfuAccess"
+                         service="ws_dfu"/>
+    <AuthenticateFeature description="Access to DFU XRef"
+                         path="DfuXrefAccess"
+                         resource="DfuXrefAccess"
+                         service="ws_dfuxref"/>
+    <AuthenticateFeature description="Access to ln access"
+                         path="LnAccessAccess"
+                         resource="LnAccessAccess"
+                         service="ws_lnaccess"/>
+    <AuthenticateFeature description="Access to ln account"
+                         path="LnAccountAccess"
+                         resource="LnAccountAccess"
+                         service="ws_lnaccount"/>
+    <AuthenticateFeature description="Access to ln roxie queries"
+                         path="LnRoxieQueryAccess"
+                         resource="LnRoxieQueryAccess"
+                         service="ws_lnroxiequery"/>
+    <AuthenticateFeature description="Access to machine information"
+                         path="MachineInfoAccess"
+                         resource="MachineInfoAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature description="Access to SNMP metrics information"
+                         path="MetricsAccess"
+                         resource="MetricsAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature description="Access to remote execution"
+                         path="ExecuteAccess"
+                         resource="ExecuteAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature description="Access to DFU workunits"
+                         path="DfuWorkunitsAccess"
+                         resource="DfuWorkunitsAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to DFU exceptions"
+                         path="DfuExceptionsAccess"
+                         resource="DfuExceptions"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to spraying files"
+                         path="FileSprayAccess"
+                         resource="FileSprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to despraying of files"
+                         path="FileDesprayAccess"
+                         resource="FileDesprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to dkcing of key files"
+                         path="FileDkcAccess"
+                         resource="FileDkcAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to files in dropzone"
+                         path="FileIOAccess"
+                         resource="FileIOAccess"
+                         service="ws_fileio"/>
+    <AuthenticateFeature description="Access to permissions for file scopes"
+                         path="FileScopeAccess"
+                         resource="FileScopeAccess"
+                         service="ws_access"/>
+    <AuthenticateFeature description="Access to upload files to LZ"
+                         path="FileUploadAccess"
+                         resource="FileUploadAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+    <AuthenticateFeature description="Access to Roxie queries and files"
+                         path="RoxieQueryAccess"
+                         resource="RoxieQueryAccess"
+                         service="ws_roxiequery"/>
+    <AuthenticateFeature description="Access to cluster topology"
+                         path="ClusterTopologyAccess"
+                         resource="ClusterTopologyAccess"
+                         service="ws_topology"/>
+    <AuthenticateFeature description="Access to own workunits"
+                         path="OwnWorkunitsAccess"
+                         resource="OwnWorkunitsAccess"
+                         service="ws_workunits"/>
+    <AuthenticateFeature description="Access to others&apos; workunits"
+                         path="OthersWorkunitsAccess"
+                         resource="OthersWorkunitsAccess"
+                         service="ws_workunits"/>
+    <AuthenticateFeature description="Access to ECL direct service"
+                         path="EclDirectAccess"
+                         resource="EclDirectAccess"
+                         service="ecldirect"/>
+    <AuthenticateFeature description="Access to ESDL configuration service"
+                         description="Access to ESDL configuration service"
+                         path="ESDLConfigAccess"
+                         resource="ESDLConfigAccess"
+                         service="ws_esdlconfig"/>
+{% endmacro %}
+
+{%macro ecldirect_afeatureset()%}
+    <AuthenticateFeature description="Access to ECL Direct service"
+                         path="EclDirectAccess"
+                         resource="EclDirectAccess"
+                         service="ecldirect"/>
+{%endmacro%}
+
+{%macro ws_ecl_afeatureset()%}
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+{%endmacro%}
+
+{%macro ws_sql_afeatureset()%}
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to WS SQL service"
+                         path="WsSQLAccess"
+                         resource="WsSqlAccess"
+                         service="ws_sql"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to own workunits"
+                         path="OwnWorkunitsAccess"
+                         resource="OwnWorkunitsAccess"
+                         service="ws_sql"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to others&apos; workunits"
+                         path="OthersWorkunitsAccess"
+                         resource="OthersWorkunitsAccess"
+                         service="ws_sql"/>
+{%endmacro%}
+
+{%macro espsmc_afeatureset()%}
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to SMC service"
+                         path="SmcAccess"
+                         resource="SmcAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to thor queues"
+                         path="ThorQueueAccess"
+                         resource="ThorQueueAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to roxie control commands"
+                         path="RoxieControlAccess"
+                         resource="RoxieControlAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to super computer environment"
+                         path="ConfigAccess"
+                         resource="ConfigAccess"
+                         service="ws_config"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU"
+                         path="DfuAccess"
+                         resource="DfuAccess"
+                         service="ws_dfu"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU XRef"
+                         path="DfuXrefAccess"
+                         resource="DfuXrefAccess"
+                         service="ws_dfuxref"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to ln access"
+                         path="LnAccessAccess"
+                         resource="LnAccessAccess"
+                         service="ws_lnaccess"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to ln account"
+                         path="LnAccountAccess"
+                         resource="LnAccountAccess"
+                         service="ws_lnaccount"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to ln roxie queries"
+                         path="LnRoxieQueryAccess"
+                         resource="LnRoxieQueryAccess"
+                         service="ws_lnroxiequery"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to machine information"
+                         path="MachineInfoAccess"
+                         resource="MachineInfoAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to SNMP metrics information"
+                         path="MetricsAccess"
+                         resource="MetricsAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to remote execution"
+                         path="ExecuteAccess"
+                         resource="ExecuteAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU workunits"
+                         path="DfuWorkunitsAccess"
+                         resource="DfuWorkunitsAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU exceptions"
+                         path="DfuExceptionsAccess"
+                         resource="DfuExceptions"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to spraying files"
+                         path="FileSprayAccess"
+                         resource="FileSprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to despraying of files"
+                         path="FileDesprayAccess"
+                         resource="FileDesprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to dkcing of key files"
+                         path="FileDkcAccess"
+                         resource="FileDkcAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to files in dropzone"
+                         path="FileIOAccess"
+                         resource="FileIOAccess"
+                         service="ws_fileio"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to permissions for file scopes"
+                         path="FileScopeAccess"
+                         resource="FileScopeAccess"
+                         service="ws_access"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to upload files to LZ"
+                         path="FileUploadAccess"
+                         resource="FileUploadAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to Roxie queries and files"
+                         path="RoxieQueryAccess"
+                         resource="RoxieQueryAccess"
+                         service="ws_roxiequery"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to cluster topology"
+                         path="ClusterTopologyAccess"
+                         resource="ClusterTopologyAccess"
+                         service="ws_topology"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to own workunits"
+                         path="OwnWorkunitsAccess"
+                         resource="OwnWorkunitsAccess"
+                         service="ws_workunits"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to others&apos; workunits"
+                         path="OthersWorkunitsAccess"
+                         resource="OthersWorkunitsAccess"
+                         service="ws_workunits"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to ECL direct service"
+                         path="EclDirectAccess"
+                         resource="EclDirectAccess"
+                         service="ecldirect"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to ESDL configuration service"
+                         path="ESDLConfigAccess"
+                         resource="ESDLConfigAccess"
+                         service="ws_esdlconfig"/>
+{%endmacro%}
+
+{%macro AuthenticateFeatureSet(component_name)%}
+{%if (hostvars[component_name]['servicetype'] is defined) %}
+{%set servicetype=hostvars[component_name]['servicetype']%}
+{%if servicetype == 'ws_ecl'%}{{ws_ecl_afeatureset()}}
+{%elif servicetype == 'ws_sql'%}{{ws_sql_afeatureset()}}
+{%elif servicetype == 'espsmc'%}{{espsmc_afeatureset()}}
+{%elif servicetype == 'ecldirect'%}{{ecldirect_afeatureset()}}
+{%elif servicetype=='WsAttributes'-%}
+{%else%}
+ ANSIBLE TEMPLATE ERROR: CANNOT PROVIDE SET OF AuthenticateFeatures BECAUSE "servicetype" IN INVENTORY FILE IS UNKNOWN servicetype="{{servicetype}}" FOR component "{{component_name}}"
+{%endif%}
+{%else%}
+ANSIBLE TEMPLATE ERROR: CANNOT PROVIDE SET OF AuthenticateFeatures BECAUSE INVENTORY FILE DOES NOT GIVE "servicetype" FOR component "{{component_name}}"
+{%endif%}
+{%endmacro%}

@@ -1,0 +1,57 @@
+
+
+[roxie]
+roxie_01 name="roxie_01"
+roxie_02 name="roxie_02"
+
+[roxie_01]
+10.0.0.81
+10.0.0.6
+10.0.0.53
+
+[roxie_02]
+10.0.0.124
+10.0.0.221
+
+[dropzone]
+dropzone_01 name="dropzone_01"
+
+[dropzone_01]
+10.0.0.113
+
+[dali]
+dali_01 name="dali_01"
+
+[dali_01]
+10.0.0.113
+
+[dfuserver]
+dfuserver_01 name="dfuserver_01"
+
+[dfuserver_01]
+10.0.0.113
+
+[eclcc]
+eclcc_01 name="eclcc_01"
+
+[eclcc_01]
+10.0.0.113
+
+[eclagent]
+eclagent_01 name="eclagent_01"
+
+[eclagent_01]
+10.0.0.113
+
+[eclscheduler]
+eclscheduler_01 name="eclscheduler_01"
+
+[eclscheduler_01]
+10.0.0.113
+
+[sasha]
+sasha_01 name="sasha_01"
+
+[sasha_01]
+10.0.0.113
+

@@ -1,0 +1,9 @@
+- debug: msg="Generate environment.xml file, i.e. {{envout}} using {{inventory_file}}."
+
+- name: Create the environment.xml using {{inventory_file}}
+  template:
+    src: "{{ envtemplate }}"
+    dest: "{{ envout }}"
+  register: environment_file
+- name: Done message
+  debug: msg="Environment File is \"{{envout}}\""

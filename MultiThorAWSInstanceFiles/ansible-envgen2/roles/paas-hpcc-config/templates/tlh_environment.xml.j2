@@ -1,0 +1,2057 @@
+{% import 'files/configHPCC-macros.j2' as mac with context %}
+{#**** Setup Lists of Servers ****#}
+{%set dfuservers=[]%}{{mac.populateList('dfuserver',dfuservers,'name',['mydfuserver'])}}
+{#DEBUG: Just populated the list, dfuservers. dfuservers="{{dfuservers}}"#}
+{%set sqlprocesses=[]%}{{mac.populateList('sqlprocess',sqlprocesses,'name',['mysql'])}}
+{#DEBUG: Just populated the list, sqlprocesses. sqlprocesses="{{sqlprocesses}}"#}
+{%set espprocesses=[]%}{{mac.populateList('esp',espprocesses,'name',['myesp'])}}
+{#DEBUG: Just populated the list, espprocesses. espprocesses="{{espprocesses}}"#}
+{%set espservices=[]%}{{mac.populateList('espservice',espservices,'name',['myespservice'])}}
+{#DEBUG: Just populated the list, espservices. espservices="{{espservices}}"#}
+{%set daliservers=[]%}{{mac.populateList('dali',daliservers,'name',['mydali'])}}
+{#DEBUG: Just populated the list, daliservers. daliservers="{{daliservers}}".#}
+{%set ldapservers=[]%}{{mac.populateList('ldap',ldapservers,'name',['myldap'])}}
+{#DEBUG: Just populated the list, ldapservers. ldapservers="{{ldapservers}}"#}
+{%set thorclusters=[]%}{{mac.populateList('thor',thorclusters,'name',['mythor'])}}
+{#DEBUG: Just populated the list, thorclusters. thorclusters="{{thorclusters}}"#}
+{%set roxieclusters=[]%}{{mac.populateList('roxie',roxieclusters,'name',['myroxie'])}}
+{#DEBUG: Just populated the list, roxieclusters. roxieclusters="{{roxieclusters}}"#}
+{%set eclagents=[]%}{{mac.populateList('eclagent',eclagents,'name',['myeclagent'])}}
+{#DEBUG: Just populated the list, eclagents. eclagents="{{eclagents}}"#}
+{%set eclschedulers=[]%}{{mac.populateList('eclscheduler',eclschedulers,'name',['myeclscheduler'])}}
+{#DEBUG: Just populated the list, eclschedulers. eclschedulers="{{eclschedulers}}"#}
+{%set eclccs=[]%}
+{%set eclservers=[]%}
+{% if groups['eclserver'] is not defined %}
+{{mac.populateList('eclcc',eclccs,'name',['myeclcc'])}}
+{#DEBUG: Just populated the list, eclccs. eclccs="{{eclccs}}"#}
+{% else %}
+{{mac.populateList('eclserver',eclservers,'name',['myeclserver'])}}
+{#DEBUG: Just populated the list, eclservers. eclservers="{{eclservers}}"#}
+{% endif %}
+{#**** END Setup Lists of Servers ****#}
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Editted with Ansible paas-hpcc-config on {{ ansible_date_time.date }} {{ ansible_date_time.time }}. -->
+<Environment>
+ <EnvSettings>
+  <path>/opt/HPCCSystems</path>
+  <interface>*</interface>
+  <pid>/var/run/HPCCSystems</pid>
+  <configs>/etc/HPCCSystems</configs>
+  <log>/var/log/HPCCSystems</log>
+  <mpEnd>7500</mpEnd>
+  <logfields>TIM+DAT+MLT+MID+PID+TID+COD+QUO+PFX</logfields>
+  <classpath>/opt/HPCCSystems/classes</classpath>
+  <use_epoll>true</use_epoll>
+  <lock>/var/lock/HPCCSystems</lock>
+  <environment>environment.xml</environment>
+  <mpStart>7101</mpStart>
+  <group>hpcc</group>
+  <allow_pgcache_flush>true</allow_pgcache_flush>
+  <runtime>/var/lib/HPCCSystems</runtime>
+  <user>hpcc</user>
+  <home>/home</home>
+  <mpSoMaxConn>128</mpSoMaxConn>
+  <blockname>HPCCSystems</blockname>
+  <sourcedir>/etc/HPCCSystems/source</sourcedir>
+ </EnvSettings>
+ <Hardware>
+{% for host in groups['all'] %}
+{% if (host != 'localhost') and (host | ipaddr) %}
+  <Computer computerType="linuxmachine"
+            domain="localdomain"
+            name="node{{ hostvars[host]['inventory_hostname'] | ipaddr('int') }}"
+            netAddress="{{ hostvars[host]['inventory_hostname'] }}"/>
+{% endif %}
+{% endfor %}
+  <ComputerType computerType="linuxmachine"
+                manufacturer="unknown"
+                name="linuxmachine"
+                nicSpeed="1000"
+                opSys="linux"/>
+  <Switch name="Switch"/>
+  <Domain name="localdomain"/>
+ </Hardware>
+ <Programs>
+  <Build name="_" url="/opt/HPCCSystems">
+   <BuildSet installSet="deploy_map.xml"
+             name="esp"
+             path="componentfiles/esp"
+             processName="EspProcess"
+             schema="esp.xsd"/>
+   <BuildSet installSet="eclserver_deploy_map.xml"
+             name="eclserver"
+             path="componentfiles/configxml"
+             processName="EclServerProcess"
+             schema="eclserver.xsd"/>
+   <BuildSet installSet="eclscheduler_deploy_map.xml"
+             name="eclscheduler"
+             path="componentfiles/configxml"
+             processName="EclSchedulerProcess"
+             schema="eclscheduler.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="eclminus"
+             overide="no"
+             path="componentfiles/eclminus"/>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="ecldirect"
+             path="componentfiles/ecldirect"
+             processName="EspService"
+             schema="esp_service_ecldirect.xsd">
+    <Properties bindingType="EclDirectSoapBinding"
+                defaultPort="8008"
+                defaultResourcesBasedn="ou=EclDirectAccess,ou=EspServices,ou=ecl"
+                defaultSecurePort="18008"
+                plugin="ecldirect"
+                type="ecldirect">
+     <AuthenticateFeature description="Access to ECL Direct service"
+                          path="EclDirectAccess"
+                          resource="EclDirectAccess"
+                          service="ecldirect"/>
+     <Authenticate access="Read"
+                   description="Root access to ECL Direct service"
+                   path="/"
+                   required="Read"
+                   resource="EclDirectAccess"/>
+    </Properties>
+   </BuildSet>
+   <BuildSet installSet="eclccserver_deploy_map.xml"
+             name="eclccserver"
+             path="componentfiles/configxml"
+             processName="EclCCServerProcess"
+             schema="eclccserver.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="dafilesrv"
+             path="componentfiles/dafilesrv"
+             processName="DafilesrvProcess"
+             schema="dafilesrv.xsd"/>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="ldapServer"
+             path="componentfiles/ldapServer"
+             processName="LDAPServerProcess"
+             schema="ldapserver.xsd"/>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="DropZone"
+             path="componentfiles/DropZone"
+             processName="DropZone"
+             schema="dropzone.xsd"/>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="ws_sql"
+             path="componentfiles/ws_sql"
+             processName="EspService"
+             schema="esp_service_wssql.xsd">
+    <Properties bindingType="ws_sqlSoapBinding"
+                defaultPort="8510"
+                defaultResourcesBasedn="ou=WsSql,ou=EspServices,ou=ecl"
+                defaultSecurePort="18510"
+                plugin="ws_sql"
+                type="ws_sql">
+     <Authenticate access="Read"
+                   description="Root access to WS SQL service"
+                   path="/"
+                   required="Read"
+                   resource="WsSqlAccess"/>
+     <AuthenticateFeature description="Access to WS SQL service"
+                          path="WsSQLAccess"
+                          resource="WsSqlAccess"
+                          service="ws_sql"/>
+     <AuthenticateFeature description="Access to own workunits"
+                          path="OwnWorkunitsAccess"
+                          resource="OwnWorkunitsAccess"
+                          service="ws_sql"/>
+     <AuthenticateFeature description="Access to others&apos; workunits"
+                          path="OthersWorkunitsAccess"
+                          resource="OthersWorkunitsAccess"
+                          service="ws_sql"/>
+    </Properties>
+   </BuildSet>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="SiteCertificate"
+             overide="no"
+             path="componentfiles/SiteCertificate"
+             processName="SiteCertificate"
+             schema="SiteCertificate.xsd"/>
+   <BuildSet installSet="roxie_deploy_map.xml"
+             name="roxie"
+             path="componentfiles/configxml"
+             processName="RoxieCluster"
+             schema="roxie.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="dfuserver"
+             path="componentfiles/dfuserver"
+             processName="DfuServerProcess"
+             schema="dfuserver.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="hqltest"
+             overide="no"
+             path="componentfiles/hqltest"
+             processName="HqlTestProcess"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="sasha"
+             path="componentfiles/sasha"
+             processName="SashaServerProcess"
+             schema="sasha.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="dali"
+             path="componentfiles/dali"
+             processName="DaliServerProcess"
+             schema="dali.xsd"/>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="topology"
+             path="componentfiles/topology"
+             processName="Topology"
+             schema="topology.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="eclplus"
+             overide="no"
+             path="componentfiles/eclplus"
+             processName="EclPlusProcess"
+             schema="eclplus.xsd"/>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="ws_ecl"
+             path="componentfiles/ws_ecl"
+             processName="EspService"
+             schema="esp_service_wsecl2.xsd">
+    <Properties bindingType="ws_eclSoapBinding"
+                defaultPort="8002"
+                defaultResourcesBasedn="ou=WsEcl,ou=EspServices,ou=ecl"
+                defaultSecurePort="18002"
+                plugin="ws_ecl"
+                type="ws_ecl">
+     <AuthenticateFeature description="Access to WS ECL service"
+                          path="WsEclAccess"
+                          resource="WsEclAccess"
+                          service="ws_ecl"/>
+     <Authenticate access="Read"
+                   description="Root access to WS ECL service"
+                   path="/"
+                   required="Read"
+                   resource="WsEclAccess"/>
+    </Properties>
+   </BuildSet>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="DynamicESDL"
+             path="componentfiles/esdlsvcengine"
+             processName="EspService"
+             schema="esdlsvcengine.xsd">
+    <Properties bindingType="EsdlBinding"
+                defaultPort="8043"
+                defaultResourcesBasedn="ou=EspServices,ou=ecl"
+                defaultSecurePort="18043"
+                plugin="esdl_svc_engine"
+                type="DynamicESDL"/>
+   </BuildSet>
+   <BuildSet installSet="deploy_map.xml"
+             name="soapplus"
+             overide="no"
+             path="componentfiles/soapplus"
+             processName="SoapPlusProcess"
+             schema="soapplus.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="eclagent"
+             path="componentfiles/eclagent"
+             processName="EclAgentProcess"
+             schema="eclagent_config.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="ftslave"
+             path="componentfiles/ftslave"
+             processName="FTSlaveProcess"
+             schema="ftslave_linux.xsd"/>
+   <BuildSet deployable="no"
+             installSet="deploy_map.xml"
+             name="espsmc"
+             path="componentfiles/espsmc"
+             processName="EspService"
+             schema="espsmcservice.xsd">
+    <Properties defaultPort="8010"
+                defaultResourcesBasedn="ou=SMC,ou=EspServices,ou=ecl"
+                defaultSecurePort="18010"
+                type="WsSMC">
+     <AuthenticateFeature description="Access to DFU XRef"
+                          path="DfuXrefAccess"
+                          resource="DfuXrefAccess"
+                          service="ws_dfuxref"/>
+     <AuthenticateFeature description="Access to roxie control commands"
+                          path="RoxieControlAccess"
+                          resource="RoxieControlAccess"
+                          service="ws_smc"/>
+     <AuthenticateFeature description="Access to WS ECL service"
+                          path="WsEclAccess"
+                          resource="WsEclAccess"
+                          service="ws_ecl"/>
+     <AuthenticateFeature description="Access to super computer environment"
+                          path="ConfigAccess"
+                          resource="ConfigAccess"
+                          service="ws_config"/>
+     <AuthenticateFeature description="Access to DFU exceptions"
+                          path="DfuExceptionsAccess"
+                          resource="DfuExceptions"
+                          service="ws_fs"/>
+     <AuthenticateFeature description="Access to SMC service"
+                          path="SmcAccess"
+                          resource="SmcAccess"
+                          service="ws_smc"/>
+     <AuthenticateFeature description="Access to dkcing of key files"
+                          path="FileDkcAccess"
+                          resource="FileDkcAccess"
+                          service="ws_fs"/>
+     <AuthenticateFeature description="Access to DFU workunits"
+                          path="DfuWorkunitsAccess"
+                          resource="DfuWorkunitsAccess"
+                          service="ws_fs"/>
+     <AuthenticateFeature description="Access to DFU"
+                          path="DfuAccess"
+                          resource="DfuAccess"
+                          service="ws_dfu"/>
+     <AuthenticateFeature description="Access to files in dropzone"
+                          path="FileIOAccess"
+                          resource="FileIOAccess"
+                          service="ws_fileio"/>
+     <AuthenticateFeature description="Access to upload files to LZ"
+                          path="FileUploadAccess"
+                          resource="FileUploadAccess"
+                          service="ws_fs"/>
+     <AuthenticateFeature description="Access to permissions for file scopes"
+                          path="FileScopeAccess"
+                          resource="FileScopeAccess"
+                          service="ws_access"/>
+     <AuthenticateFeature description="Access to cluster topology"
+                          path="ClusterTopologyAccess"
+                          resource="ClusterTopologyAccess"
+                          service="ws_topology"/>
+     <AuthenticateFeature description="Access to remote execution"
+                          path="ExecuteAccess"
+                          resource="ExecuteAccess"
+                          service="ws_machine"/>
+     <AuthenticateFeature description="Access to despraying of files"
+                          path="FileDesprayAccess"
+                          resource="FileDesprayAccess"
+                          service="ws_fs"/>
+     <AuthenticateFeature description="Access to thor queues"
+                          path="ThorQueueAccess"
+                          resource="ThorQueueAccess"
+                          service="ws_smc"/>
+     <AuthenticateFeature description="Access to machine information"
+                          path="MachineInfoAccess"
+                          resource="MachineInfoAccess"
+                          service="ws_machine"/>
+     <AuthenticateFeature description="Access to others&apos; workunits"
+                          path="OthersWorkunitsAccess"
+                          resource="OthersWorkunitsAccess"
+                          service="ws_workunits"/>
+     <AuthenticateFeature description="Access to ESDL configuration service"
+                          path="ESDLConfigAccess"
+                          resource="ESDLConfigAccess"
+                          service="ws_esdlconfig"/>
+     <AuthenticateFeature description="Access to spraying files"
+                          path="FileSprayAccess"
+                          resource="FileSprayAccess"
+                          service="ws_fs"/>
+     <AuthenticateFeature description="Access to SNMP metrics information"
+                          path="MetricsAccess"
+                          resource="MetricsAccess"
+                          service="ws_machine"/>
+     <AuthenticateFeature description="Access to own workunits"
+                          path="OwnWorkunitsAccess"
+                          resource="OwnWorkunitsAccess"
+                          service="ws_workunits"/>
+     <Authenticate access="Read"
+                   description="Root access to SMC service"
+                   path="/"
+                   required="Read"
+                   resource="SmcAccess"/>
+     <ProcessFilters>
+      <Platform name="Windows">
+       <ProcessFilter multipleInstances="true" name="EspProcess">
+        <Process name="dafilesrv" remove="true"/>
+       </ProcessFilter>
+       <ProcessFilter multipleInstances="true" name="DfuServerProcess"/>
+       <ProcessFilter multipleInstances="true" name="EclCCServerProcess"/>
+       <ProcessFilter name="any">
+        <Process name="dafilesrv"/>
+       </ProcessFilter>
+      </Platform>
+      <Platform name="Linux">
+       <ProcessFilter multipleInstances="true" name="EspProcess">
+        <Process name="dafilesrv" remove="true"/>
+       </ProcessFilter>
+       <ProcessFilter multipleInstances="true" name="DfuServerProcess"/>
+       <ProcessFilter multipleInstances="true" name="EclCCServerProcess"/>
+       <ProcessFilter name="any">
+        <Process name="dafilesrv"/>
+       </ProcessFilter>
+       <ProcessFilter name="GenesisServerProcess">
+        <Process name="atftpd"/>
+        <Process name="httpd"/>
+        <Process name="dhcpd"/>
+       </ProcessFilter>
+      </Platform>
+     </ProcessFilters>
+     <AuthenticateFeature description="Access to ECL direct service"
+                          path="EclDirectAccess"
+                          resource="EclDirectAccess"
+                          service="ecldirect"/>
+    </Properties>
+   </BuildSet>
+   <BuildSet installSet="deploy_map.xml"
+             name="thor"
+             path="componentfiles/thor"
+             processName="ThorCluster"
+             schema="thor.xsd"/>
+   <BuildSet installSet="deploy_map.xml"
+             name="dfuplus"
+             overide="no"
+             path="componentfiles/dfuplus"
+             processName="DfuplusProcess"
+             schema="dfuplus.xsd"/>
+  </Build>
+ </Programs>
+ <Software>
+{% if groups['dafilesrv'] is defined %}
+{% set mydafilesrv=groups['dafilesrv'][0] %}
+  <DafilesrvProcess build="_"
+                    buildSet="dafilesrv"
+                    description="DaFileSrv process"
+                    name="mydafilesrv"
+{{mac.OMIT('                    ',mydafilesrv,'parallelRequestLimit','')}}
+{{mac.OMIT('                    ',mydafilesrv,'throttleCPULimit','')}}
+{{mac.OMIT('                    ',mydafilesrv,'throttleDelayMs','')}}
+                    version="1">
+{% set ip_count=0 %}
+{% for thisdafilesrv in groups[mydafilesrv] %}
+{% if (thisdafilesrv != 'localhost') and (thisdafilesrv | ipaddr) %}
+{% set ip_count = ip_count + 1 %}
+   <Instance computer="node{{ hostvars[thisdafilesrv]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mydafilesrv"
+             name="s{{ ip_count }}"
+             netAddress="{{ hostvars[thisdafilesrv]['inventory_hostname'] }}"
+{{mac.OMIT('             ',mydafilesrv,'throttleCPULimit','')}}
+{{mac.OMIT('             ',mydafilesrv,'throttleDelayMs','/>')}}
+{% endif %}
+{% endfor %}
+{% else %}
+  <DafilesrvProcess build="_"
+                    buildSet="dafilesrv"
+                    description="DaFileSrv process"
+                    name="mydafilesrv"
+                    parallelRequestLimit="20"
+                    version="1">
+{% for host in groups['all'] %}
+{% if (host != 'localhost') and (host | ipaddr) %}
+   <Instance computer="node{{ hostvars[host]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mydafilesrv"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[host]['inventory_hostname'] }}"/>
+{% endif %}
+{% endfor %}
+{% endif %}
+  </DafilesrvProcess>
+{% if groups['dali'] is defined %}
+{% set mydali=groups['dali'][0] %}
+{{mac.OMIT('  <DaliServerProcess ',mydali,'asyncBackup','')}}
+{{mac.OMIT('                     ',mydali,'AuditLogDir','')}}
+{{mac.OMIT('                     ',mydali,'authMethod','')}}
+{{mac.OMIT('                     ',mydali,'backupComputer','')}}
+                     build="_"
+                     buildSet="dali"
+{{mac.OMIT('                     ',mydali,'checkScopeScans','')}}
+{{mac.OMIT('                     ',mydali,'dataPath','')}}
+{{mac.OMIT('                     ',mydali,'description','')}}
+{{mac.OMIT('                     ',mydali,'EndTime','')}}
+                     environment="/etc/HPCCSystems/environment.xml"
+{{mac.OMIT('                     ',mydali,'filesBasedn','')}}
+{{mac.OMIT('                     ',mydali,'filesDefaultPassword','')}}
+{{mac.OMIT('                     ',mydali,'filesDefaultUser','')}}
+{{mac.OMIT('                     ',mydali,'IdlePeriod','')}}
+{{mac.OMIT('                     ',mydali,'IdleRate','')}}
+{{mac.OMIT('                     ',mydali,'keepStores','')}}
+{{mac.OMIT('                     ',mydali,'ldapProtocol','')}}
+{{mac.OMIT('                     ',mydali,'ldapServer','')}}
+{% if hostvars[mydali]['ldapServer'] is defined %}
+{{mac.IsInList('ldapservers',ldapservers, hostvars[mydali]['ldapServer'], mydali)}}
+{% endif %}
+{{mac.OMIT('                     ',mydali,'lightweightCoalesce','')}}
+{{mac.OMIT('                     ',mydali,'LogDir','')}}
+{{mac.OMIT('                     ',mydali,'MinTime','')}}
+{{mac.OMIT('                     ',mydali,'msgLevel','')}}
+{{mac.DEFAULT('                     ',mydali,'name',mydali,'')}}
+{{mac.DEFAULT('                     ',mydali,'recoverFromIncErrors','false','')}}
+{{mac.OMIT('                     ',mydali,'StartTime','')}}
+{{mac.OMIT('                     ',mydali,'useNFSBackupMount','>')}}
+{% for thisdali in groups[mydali] %}
+{% if (thisdali != 'localhost') and (thisdali | ipaddr) %}
+   <Instance computer="node{{ hostvars[thisdali]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mydali"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[thisdali]['inventory_hostname'] }}"
+             port="7070"/>
+{% endif %}
+{% endfor %}
+  </DaliServerProcess>
+{% else %}
+{% if groups['master'] is defined %}
+ <DaliServerProcess build="_"
+                     buildSet="dali"
+                     environment="/etc/HPCCSystems/environment.xml"
+                     name="mydali"
+                     recoverFromIncErrors="true">
+   <Instance computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mydali"
+             name="s1"
+             netAddress="{{  groups[groups['master'][0]][0] }}"
+             port="7070"/>
+  </DaliServerProcess>
+{% else %}
+<!-- ANSIBLE TEMPLATE WARNING: NO dali is defined in the inventory file. Plus, NO master is defined in the inventory file, where a default dali can be placed -->
+{% endif %}
+{% endif %}
+{% if groups['dfuserver'] is defined %}
+{% set mydfu=groups['dfuserver'][0] %}
+  <DfuServerProcess build="_"
+                    buildSet="dfuserver"
+{{mac.REQUIRED('                    ',mydfu,'daliServers','',daliservers)}}
+                    description="DFU Server"
+                    monitorinterval="900"
+                    monitorqueue="dfuserver_monitor_queue"
+{{mac.DEFAULT('                    ',mydfu,'name',mydfu,'')}}
+{{mac.DEFAULT('                    ',mydfu,'queue','dfuserver_queue','')}}
+                    transferBufferSize="65536">
+{% for thisdfu in groups[mydfu] %}
+   <Instance computer="node{{ hostvars[thisdfu]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mydfuserver"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[thisdfu]['inventory_hostname'] }}"/>
+{% endfor %}
+   <SSH SSHidentityfile="$HOME/.ssh/id_rsa"
+        SSHpassword=""
+        SSHretries="3"
+        SSHtimeout="0"
+        SSHusername="hpcc"/>
+  </DfuServerProcess>
+{% else %}
+{% if groups['master'] is defined %}
+  <DfuServerProcess build="_"
+                    buildSet="dfuserver"
+{{mac.REQUIRED('                    ','mydfuserver','daliServers','',daliservers)}}
+                    description="DFU Server"
+                    monitorinterval="900"
+                    monitorqueue="dfuserver_monitor_queue"
+                    name="mydfuserver"
+                    queue="dfuserver_queue"
+                    transferBufferSize="65536">
+   <Instance computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mydfuserver"
+             name="s1"
+             netAddress="{{  groups[groups['master'][0]][0] }}"/>
+   <SSH SSHidentityfile="$HOME/.ssh/id_rsa"
+        SSHpassword=""
+        SSHretries="3"
+        SSHtimeout="0"
+        SSHusername="hpcc"/>
+  </DfuServerProcess>
+{% else %}
+<!-- ANSIBLE TEMPLATE WARNING: NO dfu is defined and NO master is defined where a dfu could be placed -->
+{% endif %}
+{% endif %}
+{% if groups['eclagent'] is defined %}
+{% for myagent in groups['eclagent'] %}
+  <EclAgentProcess allowedPipePrograms="*"
+                   build="_"
+                   buildSet="eclagent"
+{{mac.REQUIRED('                   ',myagent,'daliServers','',daliservers)}}
+                   defaultMemoryLimitMB="300"
+                   description="EclAgent process"
+{{mac.OMIT('                   ',myagent,'heapRetainMemory','')}}
+{{mac.OMIT('                   ',myagent,'heapUseHugePages','')}}
+{{mac.OMIT('                   ',myagent,'heapUseTransparentHugePages','')}}
+{{mac.DEFAULT('                   ',myagent,'name',myagent,'')}}
+                   pluginDirectory="/opt/HPCCSystems/plugins/"
+{{mac.DEFAULT('                   ',myagent,'thorConnectTimeout','600','')}}
+                   traceLevel="0"
+{{mac.DEFAULT('                   ',myagent,'wuQueueName','myeclagent_queue','>')}}
+{% for agentip in groups[myagent] %}
+   <Instance computer="node{{ hostvars[agentip]['inventory_hostname']|ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/{{myagent}}"
+             name="s{{ loop.index }}"
+             netAddress="{{ agentip }}"/>
+{% endfor %}
+  </EclAgentProcess>
+{% endfor %}
+{% else %}
+{% if groups['master'] is defined %}
+  <EclAgentProcess allowedPipePrograms="*"
+                   build="_"
+                   buildSet="eclagent"
+{{mac.REQUIRED('                   ','myeclagent','daliServers','',daliservers)}}
+                   defaultMemoryLimitMB="300"
+                   description="EclAgent process"
+                   name="myeclagent"
+                   pluginDirectory="/opt/HPCCSystems/plugins/"
+                   thorConnectTimeout="600"
+                   traceLevel="0"
+                   wuQueueName="myeclagent_queue">
+   <Instance computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/myeclagent"
+             name="s1"
+             netAddress="{{  groups[groups['master'][0]][0] }}"/>
+  </EclAgentProcess>
+{% else %}
+<!-- ANSIBLE TEMPLATE WARNING: NO ecl agent is defined and NO master is defined where a ecl agent could be placed -->
+{% endif %}
+{% endif %}
+{% if groups['eclscheduler'] is defined %}
+{% set myeclscheduler=groups['eclscheduler'][0] %}
+  <EclSchedulerProcess build="_"
+                       buildSet="eclscheduler"
+{{mac.REQUIRED('                       ',myeclscheduler,'daliServers','',daliservers)}}
+                       description="EclScheduler process"
+{{mac.DEFAULT('                       ',myeclscheduler,'name',myeclscheduler,'>')}}
+{% for thiseclscheduler in groups[myeclscheduler] %}
+   <Instance computer="node{{ hostvars[thiseclscheduler]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/{{myeclscheduler}}"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[thiseclscheduler]['inventory_hostname'] }}"/>
+{% endfor %}
+  </EclSchedulerProcess>
+{% else %} 
+{% if groups['master'] is defined %}
+  <EclSchedulerProcess build="_"
+                       buildSet="eclscheduler"
+{{mac.REQUIRED('                       ','myeclscheduler','daliServers','',daliservers)}}
+                       description="EclScheduler process"
+                       name="myeclscheduler">
+   <Instance computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/myeclscheduler"
+             name="s1"
+             netAddress="{{  groups[groups['master'][0]][0] }}"/>
+  </EclSchedulerProcess>
+{% else %}
+<!-- ANSIBLE TEMPLATE WARNING: NO ecl scheduler is defined and NO master is defined where a ecl scheduler could be placed -->
+{% endif %}
+{% endif %}
+{% if groups['eclserver'] is defined %}
+{% for myeclserver in groups['eclserver'] %}
+  <EclServerProcess adlEngine=""
+                    build="_"
+                    buildSet="eclserver"
+{{mac.DEFAULT('                    ',myeclserver,'cacheWorkUnits','false','')}}
+                    cleaningPort="11000"
+{{mac.OMIT('                    ',myeclserver,'cleaningServer','')}}
+                    compileOptions=""
+                    compilerPath=""
+{{mac.OMIT('                    ',myeclserver,'createQueryArchive','')}}
+{{mac.REQUIRED('                    ',myeclserver,'daliServers','',daliservers)}}
+{{mac.DEFAULT('                    ',myeclserver,'dbPassword','blanked','')}}
+                    dbUser="eclrepository"
+                    debugQuery="false"
+                    description="EclServer process"
+                    dllTargetDir=""
+{{mac.OMIT('                    ',myeclserver,'eclBundlesPath','')}}
+                    eclLibrariesPath="/opt/HPCCSystems/share/ecllibrary"
+{{mac.DEFAULT('                    ',myeclserver,'eclWatch','esp/eclwatch','')}}
+{{mac.OMIT('                    ',myeclserver,'emailAddress','')}}
+                    enableSNMP="true"
+                    enableSysLog="true"
+                    forceCompareCluster=""
+                    forceThorCompareCluster=""
+                    includePath=""
+                    legacyECL="true"
+                    libraryPath=""
+                    linkOptions=""
+{{mac.DEFAULT('                    ',myeclserver,'maxCompileThreads','2','')}}
+{{mac.OMIT('                    ',myeclserver,'mySQL','')}}
+{% if hostvars[myeclserver]['mySQL'] is defined %}
+{{mac.IsInList('sqlprocesses',sqlprocesses, hostvars[myeclserver]['mySQL'],myeclserver)}}
+{% endif %}
+{{mac.DEFAULT('                    ',myeclserver,'name',myeclserver,'')}}
+                    pluginsPath="./plugins:/opt/HPCCSystems/plugins/"
+{{mac.DEFAULT('                    ',myeclserver,'repository','tlhrepo','')}}
+{{mac.OMIT('                    ',myeclserver,'restartAfterCompiles','')}}
+                    saveEclTempFiles="false"
+                    SMTPport="25"
+{{mac.OMIT('                    ',myeclserver,'SMTPserver','')}}
+                    snmpAlertInterval="60"
+                    snmpErrorMessageLevel="100"
+                    snmpSendWarnings="false"
+                    tempPath=""
+{{mac.DEFAULT('                    ',myeclserver,'thorConnectTimeoutSeconds','120','')}}
+                    traceLevel="1">
+{# == ADD Instance attributes == #}
+{% for eclserverip in groups[myeclserver] %}
+{% if eclserverip | ipaddr %}
+   <Instance computer="node{{ hostvars[eclserverip]['inventory_hostname']|ipaddr('int') }}"
+{% if hostvars[myeclserver]['name'] is defined %}
+             directory="/var/lib/HPCCSystems/{{hostvars[myeclserver]['name']}}"
+{% else %} 
+ANSIBLE TEMPLATE ERROR: NO "directory" GIVEN FOR component "{{hostvars[myeclserver]['name']}}"
+{% endif %}
+             name="s1"
+             netAddress="{{ eclserverip }}"/>
+{% endif %}
+{% endfor %}
+{# == END ADD Instance attributes == #}
+{# == ADD lpadSecurity == #}
+{% if hostvars[myeclserver]['server'] is defined %}
+   <ldapSecurity authMethod="kerberos"
+                 ldapProtocol="ldap"
+{{mac.DEFAULT('                 ',myeclserver,'maxConnections','10','')}}
+                 modulesBasedn=""
+{{mac.REQUIRED('                 ',myeclserver,'server','')}}
+{% if hostvars[myeclserver]['server'] is defined %}
+{{mac.IsInList('ldapservers',ldapservers, hostvars[myeclserver]['server'],myeclserver)}}
+{% endif %}
+                 templateName="repository.newmoduletemplate"/>
+{% endif %}
+{# == END ADD lpadSecurity == #}
+{# == ADD Option attributes == #}
+{% for myoption in groups[myeclserver] %}
+{% if not myoption | ipaddr %}
+   <Option cluster="" 
+{{mac.REQUIRED('           ',myoption,'name','')}} 
+{{mac.REQUIRED('           ',myoption,'value','/>')}}
+{% endif %}
+{% endfor %}
+{# == END ADD Option attributes == #}
+  </EclServerProcess>
+{% endfor %}
+{% endif %}
+{# EspProcess.xml.j2.template #}
+{% if groups['espservice'] is defined %}
+{% if groups['ldap'] is defined %}
+{%for s in groups['ldap']%}{%if ldapservers.append(hostvars[s]['name'])%}{%endif%}{%endfor%}
+{% endif %}
+{% for this_esp in groups['esp'] %}
+{%set bindings = []%}
+  <EspProcess build="_"
+              buildSet="esp"
+              componentfilesDir="/opt/HPCCSystems/componentfiles"
+{{mac.OMIT('              ',this_esp,'controlPort','')}}
+{{mac.REQUIRED('              ',this_esp,'daliServers','',daliservers)}}
+              description="ESP server"
+              enableSEHMapping="true"
+              formOptionsAccess="false"
+              httpConfigAccess="true"
+              logLevel="1"
+{{mac.DEFAULT('              ',this_esp,'logRequests','false','')}}
+              logResponses="false"
+              maxBacklogQueueSize="200"
+              maxConcurrentThreads="0"
+              maxRequestEntityLength="8000000"
+{{mac.DEFAULT('              ',this_esp,'name',this_esp,'')}}
+              perfReportDelay="60"
+              portalurl="http://hpccsystems.com/download">
+{{mac.OMIT('   <Authentication ',this_esp,'htpasswdFile','')}}
+{{mac.DEFAULT('                   ',this_esp,'ldapAuthMethod','kerberos','')}}
+                   ldapConnections="10"
+{{mac.DEFAULT('                   ',this_esp,'ldapServer','','')}}
+{{mac.DEFAULT('                   ',this_esp,'method','none','')}}
+{% if (hostvars[this_esp]['method'] is defined) and (hostvars[this_esp]['method']=='ldap') %}
+{% if hostvars[this_esp]['ldapServer'] is defined %}
+{{mac.IsInList('ldapservers',ldapservers, hostvars[this_esp]['ldapServer'],this_esp)}}
+{% else %}
+ANSIBLE TEMPLATE ERROR: IN INVENTORY FILE, THE esp,"{{this_esp}}", HAS method='ldap' BUT ldapServer IS NOT DEFINED.
+{% endif %}
+{% endif %}
+{{mac.DEFAULT('                   ',this_esp,'passwordExpirationWarningDays','10','/>')}}
+{% for mybinding in groups[this_esp] %}
+{% if not mybinding | ipaddr %}
+{%if bindings.append(mybinding)%}{%endif%}{# APPEND "mybinding" to all bindings, "bindings" #}
+   <EspBinding defaultForPort="true"
+               defaultServiceVersion=""
+{{mac.REQUIRED('               ',mybinding,'name','')}}
+{{mac.REQUIRED('               ',mybinding,'port','')}}
+{{mac.DEFAULT('               ',mybinding,'protocol','http','')}}
+{{mac.REQUIRED('               ',mybinding,'resourcesBasedn','')}}
+{{mac.REQUIRED('               ',mybinding,'service','')}}
+{% if hostvars[mybinding]['service'] is defined %}
+{{mac.IsInList('espservices',espservices, hostvars[mybinding]['service'],mybinding)}}
+{% endif %}
+               workunitsBasedn="ou=workunits,ou=ecl"
+               wsdlServiceAddress="">
+    <Authenticate access="Read"
+{{mac.REQUIRED('                  ',mybinding,'description','')}}
+{{mac.OMIT('                  ',mybinding,'method','')}}
+                  path="/"
+{{mac.OMIT('                  ',mybinding,'required','')}}
+{{mac.REQUIRED('                  ',mybinding,'resource','/>')}}
+{%if (hostvars[mybinding]['servicetype'] is defined) %}
+{%if (hostvars[mybinding]['servicetype']!='WsAttributes')%}
+{{mac.AuthenticateFeatureSet(mybinding)}}
+{%endif%}
+{%else%}
+ANSIBLE TEMPLATE ERROR: IN INVENTORY FILE, THE VARIABLE, "servicetype" NOT GIVEN FOR mybinding="{{mybinding}}".
+{%endif%}
+   </EspBinding>
+{% endif %}
+{% endfor %}
+   <HTTPS acceptSelfSigned="true"
+          CA_Certificates_Path="ca.pem"
+          certificateFileName="certificate.cer"
+{{mac.OMIT('          ',this_esp,'cipherList','')}}
+          city=""
+          country="US"
+          daysValid="365"
+          enableVerification="false"
+          organization="Customer of HPCCSystems"
+          organizationalUnit=""
+          passphrase=""
+          privateKeyFileName="privatekey.cer"
+          regenerateCredentials="false"
+          requireAddressMatch="false"
+          state=""
+          trustedPeers="anyone"/>
+{% set ip_count=0 %}
+{% for ip in groups[this_esp] %}
+{% if ip | ipaddr %}
+{% set ip_count = ip_count + 1 %}
+   <Instance computer="node{{ hostvars[ip]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/{{hostvars[this_esp]['name']}}"
+             FQDN=""
+             name="s{{ ip_count }}"
+             netAddress="{{ hostvars[ip]['inventory_hostname'] }}">
+    <Certificate/>
+    <CSR/>  
+    <PrivateKey/>
+   </Instance>
+{% endif %}{# END if ip | ipaddr #}
+{% endfor %}{# END for ip in groups[this_esp] #}
+  </EspProcess>
+{% if bindings|count == 0 %}
+ANSIBLE TEMPLATE ERROR: IN INVENTORY FILE, THERE WERE NO ESPBINDINGS FOR this_esp="{{this_esp}}".
+{% endif %}{# END if bindings|count == 0 #}
+{% endfor %}{# END if groups['esp'] is defined #}
+
+{# END if groups['esp'] is defined #}
+{% else %}
+{# BEGINNING OF jinja2 FOR DEFAULT, i.e. NO EspProcess IN INVENTORY FILE #}
+  <EspProcess build="_"
+              buildSet="esp"
+              componentfilesDir="/opt/HPCCSystems/componentfiles"
+              controlPort="8010"
+{{mac.REQUIRED('              ','myesp','daliServers','',daliservers)}}
+              description="ESP server"
+              enableSEHMapping="true"
+              formOptionsAccess="false"
+              httpConfigAccess="true"
+              logLevel="1"
+              logRequests="false"
+              logResponses="false"
+              maxBacklogQueueSize="200"
+              maxConcurrentThreads="0"
+              maxRequestEntityLength="8000000"
+              name="myesp"
+              perfReportDelay="60"
+              portalurl="http://hpccsystems.com/download">
+   <Authentication ldapAuthMethod="kerberos"
+                   ldapConnections="10"
+                   ldapServer=""
+                   method="none"
+                   passwordExpirationWarningDays="10"/>
+   <EspBinding defaultForPort="true"
+               defaultServiceVersion=""
+               name="EclWatch"
+               port="8010"
+               protocol="http"
+               resourcesBasedn="ou=SMC,ou=EspServices,ou=ecl"
+               service="EclWatch"
+               type=""
+               workunitsBasedn="ou=workunits,ou=ecl"
+               wsdlServiceAddress="">
+    <Authenticate access="Read"
+                  description="Root access to SMC service"
+                  path="/"
+                  required="Read"
+                  resource="SmcAccess"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU XRef"
+                         path="DfuXrefAccess"
+                         resource="DfuXrefAccess"
+                         service="ws_dfuxref"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to roxie control commands"
+                         path="RoxieControlAccess"
+                         resource="RoxieControlAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to super computer environment"
+                         path="ConfigAccess"
+                         resource="ConfigAccess"
+                         service="ws_config"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU exceptions"
+                         path="DfuExceptionsAccess"
+                         resource="DfuExceptions"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to SMC service"
+                         path="SmcAccess"
+                         resource="SmcAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to dkcing of key files"
+                         path="FileDkcAccess"
+                         resource="FileDkcAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU workunits"
+                         path="DfuWorkunitsAccess"
+                         resource="DfuWorkunitsAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to DFU"
+                         path="DfuAccess"
+                         resource="DfuAccess"
+                         service="ws_dfu"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to files in dropzone"
+                         path="FileIOAccess"
+                         resource="FileIOAccess"
+                         service="ws_fileio"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to permissions for file scopes"
+                         path="FileScopeAccess"
+                         resource="FileScopeAccess"
+                         service="ws_access"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to upload files to LZ"
+                         path="FileUploadAccess"
+                         resource="FileUploadAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to cluster topology"
+                         path="ClusterTopologyAccess"
+                         resource="ClusterTopologyAccess"
+                         service="ws_topology"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to remote execution"
+                         path="ExecuteAccess"
+                         resource="ExecuteAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to despraying of files"
+                         path="FileDesprayAccess"
+                         resource="FileDesprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to thor queues"
+                         path="ThorQueueAccess"
+                         resource="ThorQueueAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to machine information"
+                         path="MachineInfoAccess"
+                         resource="MachineInfoAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to others&apos; workunits"
+                         path="OthersWorkunitsAccess"
+                         resource="OthersWorkunitsAccess"
+                         service="ws_workunits"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to ESDL configuration service"
+                         path="ESDLConfigAccess"
+                         resource="ESDLConfigAccess"
+                         service="ws_esdlconfig"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to spraying files"
+                         path="FileSprayAccess"
+                         resource="FileSprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to SNMP metrics information"
+                         path="MetricsAccess"
+                         resource="MetricsAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to own workunits"
+                         path="OwnWorkunitsAccess"
+                         resource="OwnWorkunitsAccess"
+                         service="ws_workunits"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to ECL direct service"
+                         path="EclDirectAccess"
+                         resource="EclDirectAccess"
+                         service="ecldirect"/>
+   </EspBinding>
+   <EspBinding defaultForPort="true"
+               defaultServiceVersion=""
+               name="myws_ecl"
+               port="8002"
+               protocol="http"
+               resourcesBasedn="ou=WsEcl,ou=EspServices,ou=ecl"
+               service="myws_ecl"
+               workunitsBasedn="ou=workunits,ou=ecl"
+               wsdlServiceAddress="">
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+    <Authenticate access="Read"
+                  description="Root access to WS ECL service"
+                  path="/"
+                  required="Read"
+                  resource="WsEclAccess"/>
+   </EspBinding>
+{% if groups['wssql'] is defined %}
+   <EspBinding defaultForPort="true"
+               defaultServiceVersion=""
+               name="myws_sql"
+               port="8510"
+               protocol="http"
+               resourcesBasedn="ou=WsSql,ou=EspServices,ou=ecl"
+               service="myws_sql"
+{%if espservices.append('myws_sql')%}{%endif%}
+               workunitsBasedn="ou=workunits,ou=ecl"
+               wsdlServiceAddress="">
+    <Authenticate access="Read"
+                  description="Root access to WS SQL service"
+                  path="/"
+                  required="Read"
+                  resource="WsSqlAccess"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to WS SQL service"
+                         path="WsSQLAccess"
+                         resource="WsSqlAccess"
+                         service="ws_sql"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to own workunits"
+                         path="OwnWorkunitsAccess"
+                         resource="OwnWorkunitsAccess"
+                         service="ws_sql"/>
+    <AuthenticateFeature authenticate="Yes"
+                         description="Access to others&apos; workunits"
+                         path="OthersWorkunitsAccess"
+                         resource="OthersWorkunitsAccess"
+                         service="ws_sql"/>
+   </EspBinding>
+{% endif %}
+   <HTTPS acceptSelfSigned="true"
+          CA_Certificates_Path="ca.pem"
+          certificateFileName="certificate.cer"
+          city=""
+          country="US"
+          daysValid="365"
+          enableVerification="false"
+          organization="Customer of HPCCSystems"
+          organizationalUnit=""
+          passphrase=""
+          privateKeyFileName="privatekey.cer"
+          regenerateCredentials="false"
+          requireAddressMatch="false"
+          state=""
+          trustedPeers="anyone"/>
+{% if groups['eclwatch'] is defined %}
+{% for thiseclwatch in groups['eclwatch'] %}
+   <Instance computer="node{{ hostvars[thiseclwatch]['inventory_hostname'] | ipaddr('int') }}"
+{{mac.DEFAULT('             ',ip,'directory','/var/lib/HPCCSystems/esp','')}}
+             FQDN=""
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[thiseclwatch]['inventory_hostname'] }}">
+    <Certificate/>
+    <CSR/>  
+    <PrivateKey/>
+   </Instance>
+{% endfor %}
+{% elif groups['master'] is defined %}
+   <Instance computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/myesp"
+             name="s1"
+             netAddress="{{  groups[groups['master'][0]][0] }}">
+    <Certificate/>
+    <CSR/>  
+    <PrivateKey/>
+   </Instance>
+{% elif groups['eclagent'] is defined %}
+   <Instance computer="node{{  groups[groups['eclagent'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/myesp"
+             name="s1"
+             netAddress="{{  groups[groups['eclagent'][0]][0] }}">
+    <Certificate/>
+    <CSR/>  
+    <PrivateKey/>
+   </Instance>
+{% endif %}
+  </EspProcess>
+{% endif %}
+{# BEGINNING OF ESP SERVICE TEMPLATE #}
+{% if groups['espservice'] is defined %}
+{% for myespservice in groups['espservice'] %}
+{% if hostvars[myespservice]['buildSet'] == 'espsmc' %}
+{{mac.OMIT('  <EspService ',myespservice,'ActivityInfoCacheSeconds','')}}
+{{mac.OMIT('              ',myespservice,'allowNewRoxieOnDemandQuery','')}}
+{{mac.OMIT('              ',myespservice,'AWUsCacheTimeout','')}}
+              build="_"
+{{mac.REQUIRED('              ',myespservice,'buildSet','')}}
+{{mac.OMIT('              ',myespservice,'clusterQueryStateThreadPoolSize','')}}
+{{mac.OMIT('              ',myespservice,'defaultTargetCluster','')}}
+{{mac.DEFAULT('              ',myespservice,'description','ESP services for SMC','')}}
+              disableUppercaseTranslation="false"
+{% if groups['eclcc'] is not defined %}
+{{mac.REQUIRED('              ',myespservice,'eclServer','',eclservers)}}
+{% endif %}
+{{mac.OMIT('              ',myespservice,'enableLogDaliConnection','')}}
+              enableSystemUseRewrite="false"
+{{mac.DEFAULT('              ',myespservice,'excludePartitions','/dev*,/sys,/proc/*,/boot','')}}
+{{mac.OMIT('              ',myespservice,'filesBasedn','')}}
+              monitorDaliFileServer="false"
+{{mac.DEFAULT('              ',myespservice,'name',myespservice,'')}}
+{{mac.OMIT('              ',myespservice,'NodeGroupCacheMinutes','')}}
+              pluginsPath="/opt/HPCCSystems/plugins"
+{{mac.OMIT('              ',myespservice,'serverForArchivedECLWU','')}}
+              syntaxCheckQueue=""
+              viewTimeout="1000"
+              warnIfCpuLoadOver="95"
+              warnIfFreeMemoryUnder="5"
+              warnIfFreeStorageUnder="5">
+{% if hostvars[myespservice]['vip'] is defined %}
+{% set mylist = hostvars[myespservice]['vip']|list %}
+{% set name=mylist[0] %}{% set roxie=mylist[1] %}{% set vip=mylist[2] %}
+   <ProcessCluster name="{{name}}" roxie="{{roxie}}" vip="{{vip}}"/>
+{% endif %}
+   <Properties defaultPort="8010"
+               defaultResourcesBasedn="ou=SMC,ou=EspServices,ou=ecl"
+               defaultSecurePort="18010"
+               type="WsSMC">
+    <Authenticate access="Read"
+                  description="Root access to SMC service"
+                  path="/"
+                  required="Read"
+                  resource="SmcAccess"/>
+{{mac.espsmc_service_afeatures()}}
+{{mac.processfilters()}}
+   </Properties>
+  </EspService>
+{% elif hostvars[myespservice]['buildSet'] == 'WsAttributes' %}
+{{mac.OMIT('  <EspService ',myespservice,'ActivityInfoCacheSeconds','')}}
+              build="_"
+{{mac.REQUIRED('              ',myespservice,'buildSet')}}
+{{mac.DEFAULT('              ',myespservice,'dbPassword','blanked','')}}
+              dbUser="eclrepository"
+              description="ws_attributes ESP service"
+{{mac.REQUIRED('              ',myespservice,'eclServer','',eclservers)}}
+{{mac.OMIT('              ',myespservice,'mySQL','')}}
+{% if hostvars[myespservice]['mySQL'] is defined %}
+{{mac.IsInList('sqlprocesses',sqlprocesses, hostvars[myespservice]['mySQL'],myespservice)}}
+{% endif %}
+{{mac.DEFAULT('              ',myespservice,'name',myespservice,'')}}
+              poolSize="10"
+{{mac.DEFAULT('              ',myespservice,'repository','myrepo','')}}
+              useAttributeTypes="true"
+              viewTimeout="1000"
+              waitTimeout="90">
+{% if hostvars[myespservice]['vip'] is defined %}
+{% set mylist = hostvars[myespservice]['vip']|list %}
+{% set name=mylist[0] %}{% set roxie=mylist[1] %}{% set vip=mylist[2] %}
+   <ProcessCluster name="{{name}}" roxie="{{roxie}}" vip="{{vip}}"/>
+{% endif %}
+   <Properties bindingType="WsAttributesSoapBinding"
+               defaultPort="8145"
+               defaultResourcesBasedn="ou=WsAttributesAccess,ou=EspServices,ou=ecl"
+               defaultSecurePort="18145"
+               plugin="ws_attributes"
+               type="WsAttributes">
+    <Authenticate description="Root access to WS attributes service"
+                  method="UserDefined"
+                  path="/"
+                  resource="WsAttributesAccess"/>
+   </Properties>
+  </EspService>
+{% elif hostvars[myespservice]['buildSet'] == 'ws_ecl' %}
+{{mac.OMIT('  <EspService ',myespservice,'ActivityInfoCacheSeconds','')}}
+              build="_"
+{{mac.REQUIRED('              ',myespservice,'buildSet')}}
+{{mac.DEFAULT('              ',myespservice,'description','WS ECL Service','')}}
+{{mac.DEFAULT('              ',myespservice,'name',myespservice,'')}}
+{{mac.OMIT('              ',myespservice,'roxieTimeout','')}}
+{{mac.OMIT('              ',myespservice,'workunitTimeout','>')}}
+{% if hostvars[myespservice]['vip'] is defined %}
+{% set mylist = hostvars[myespservice]['vip']|list %}
+{% set name=mylist[0] %}{% set roxie=mylist[1] %}{% set vip=mylist[2] %}
+   <ProcessCluster name="{{name}}" roxie="{{roxie}}" vip="{{vip}}"/>
+{% endif %}
+   <Properties bindingType="ws_eclSoapBinding"
+               defaultPort="8002"
+               defaultResourcesBasedn="ou=WsEcl,ou=EspServices,ou=ecl"
+               defaultSecurePort="18002"
+               plugin="ws_ecl"
+               type="ws_ecl">
+    <Authenticate access="Read"
+                  description="Root access to WS ECL service"
+                  path="/"
+                  required="Read"
+                  resource="WsEclAccess"/>
+    <AuthenticateFeature description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+   </Properties>
+  </EspService>
+{% elif hostvars[myespservice]['buildSet'] == 'ws_sql' %}
+{{mac.OMIT('  <EspService ',myespservice,'ActivityInfoCacheSeconds','')}}
+              build="_"
+{{mac.REQUIRED('              ',myespservice,'buildSet')}}
+{{mac.DEFAULT('              ',myespservice,'description','WS SQL Service','')}}
+{{mac.DEFAULT('              ',myespservice,'name',myespservice,'')}}
+{% if hostvars[myespservice]['vip'] is defined %}
+{% set mylist = hostvars[myespservice]['vip']|list %}
+{% set name=mylist[0] %}{% set roxie=mylist[1] %}{% set vip=mylist[2] %}
+   <ProcessCluster name="{{name}}" roxie="{{roxie}}" vip="{{vip}}"/>
+{% endif %}
+   <Properties bindingType="ws_sqlSoapBinding"
+               defaultPort="8510"
+               defaultResourcesBasedn="ou=WsSql,ou=EspServices,ou=ecl"
+               defaultSecurePort="18510"
+               plugin="ws_sql"
+               type="ws_sql">
+    <Authenticate access="Read"
+                  description="Root access to WS SQL service"
+                  path="/"
+                  required="Read"
+                  resource="WsSqlAccess"/>
+    <AuthenticateFeature description="Access to WS SQL service"
+                         path="WsSQLAccess"
+                         resource="WsSqlAccess"
+                         service="ws_sql"/>
+    <AuthenticateFeature description="Access to own workunits"
+                         path="OwnWorkunitsAccess"
+                         resource="OwnWorkunitsAccess"
+                         service="ws_sql"/>
+    <AuthenticateFeature description="Access to others&apos; workunits"
+                         path="OthersWorkunitsAccess"
+                         resource="OthersWorkunitsAccess"
+                         service="ws_sql"/>
+   </Properties>
+  </EspService>
+{% elif hostvars[myespservice]['buildSet'] == 'ecldirect' %}
+{{mac.OMIT('  <EspService ',myespservice,'ActivityInfoCacheSeconds','')}}
+              build="_"
+{{mac.REQUIRED('              ',myespservice,'buildSet')}}
+              clusterName="hthor"
+{{mac.DEFAULT('              ',myespservice,'description','ESP service for running raw ECL queries','')}}
+{{mac.DEFAULT('              ',myespservice,'name',myespservice,'>')}}
+{% if hostvars[myespservice]['vip'] is defined %}
+{% set mylist = hostvars[myespservice]['vip']|list %}
+{% set name=mylist[0] %}{% set roxie=mylist[1] %}{% set vip=mylist[2] %}
+   <ProcessCluster name="{{name}}" roxie="{{roxie}}" vip="{{vip}}"/>
+{% endif %}
+   <Properties bindingType="EclDirectSoapBinding"
+               defaultPort="8008"
+               defaultResourcesBasedn="ou=EclDirectAccess,ou=EspServices,ou=ecl"
+               defaultSecurePort="18008"
+               plugin="ecldirect"
+               type="ecldirect">
+    <Authenticate access="Read"
+                  description="Root access to ECL Direct service"
+                  path="/"
+                  required="Read"
+                  resource="EclDirectAccess"/>
+    <AuthenticateFeature description="Access to ECL Direct service"
+                         path="EclDirectAccess"
+                         resource="EclDirectAccess"
+                         service="ecldirect"/>
+   </Properties>
+  </EspService>
+{% else %}
+ANSIBLE TEMPLATE ERROR: IN INVENTORY FILE, UNRECOGNIZED buildSet="{{hostvars[myespservice]['buildSet']}}" FOR COMPONENT {{myespservice}}.
+{% endif %}
+{% endfor %}
+{% else %}
+  <EspService ActivityInfoCacheSeconds="10"
+              allowNewRoxieOnDemandQuery="false"
+              AWUsCacheTimeout="15"
+              build="_"
+              buildSet="espsmc"
+              clusterQueryStateThreadPoolSize="25"
+              defaultTargetCluster=""
+              description="ESP services for SMC"
+              disableUppercaseTranslation="false"
+              enableSystemUseRewrite="false"
+              excludePartitions="/dev*,/sys,/proc/*"
+              monitorDaliFileServer="false"
+              name="EclWatch"
+              pluginsPath="/opt/HPCCSystems/plugins"
+              serverForArchivedECLWU=""
+              syntaxCheckQueue=""
+              viewTimeout="1000"
+              warnIfCpuLoadOver="95"
+              warnIfFreeMemoryUnder="5"
+              warnIfFreeStorageUnder="5">
+   <Properties defaultPort="8010"
+               defaultResourcesBasedn="ou=SMC,ou=EspServices,ou=ecl"
+               defaultSecurePort="18010"
+               type="WsSMC">
+    <AuthenticateFeature description="Access to DFU XRef"
+                         path="DfuXrefAccess"
+                         resource="DfuXrefAccess"
+                         service="ws_dfuxref"/>
+    <AuthenticateFeature description="Access to roxie control commands"
+                         path="RoxieControlAccess"
+                         resource="RoxieControlAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+    <AuthenticateFeature description="Access to super computer environment"
+                         path="ConfigAccess"
+                         resource="ConfigAccess"
+                         service="ws_config"/>
+    <AuthenticateFeature description="Access to DFU exceptions"
+                         path="DfuExceptionsAccess"
+                         resource="DfuExceptions"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to SMC service"
+                         path="SmcAccess"
+                         resource="SmcAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature description="Access to dkcing of key files"
+                         path="FileDkcAccess"
+                         resource="FileDkcAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to DFU workunits"
+                         path="DfuWorkunitsAccess"
+                         resource="DfuWorkunitsAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to DFU"
+                         path="DfuAccess"
+                         resource="DfuAccess"
+                         service="ws_dfu"/>
+    <AuthenticateFeature description="Access to files in dropzone"
+                         path="FileIOAccess"
+                         resource="FileIOAccess"
+                         service="ws_fileio"/>
+    <AuthenticateFeature description="Access to permissions for file scopes"
+                         path="FileScopeAccess"
+                         resource="FileScopeAccess"
+                         service="ws_access"/>
+    <AuthenticateFeature description="Access to upload files to LZ"
+                         path="FileUploadAccess"
+                         resource="FileUploadAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to cluster topology"
+                         path="ClusterTopologyAccess"
+                         resource="ClusterTopologyAccess"
+                         service="ws_topology"/>
+    <AuthenticateFeature description="Access to remote execution"
+                         path="ExecuteAccess"
+                         resource="ExecuteAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature description="Access to despraying of files"
+                         path="FileDesprayAccess"
+                         resource="FileDesprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to thor queues"
+                         path="ThorQueueAccess"
+                         resource="ThorQueueAccess"
+                         service="ws_smc"/>
+    <AuthenticateFeature description="Access to machine information"
+                         path="MachineInfoAccess"
+                         resource="MachineInfoAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature description="Access to others&apos; workunits"
+                         path="OthersWorkunitsAccess"
+                         resource="OthersWorkunitsAccess"
+                         service="ws_workunits"/>
+    <AuthenticateFeature description="Access to ESDL configuration service"
+                         path="ESDLConfigAccess"
+                         resource="ESDLConfigAccess"
+                         service="ws_esdlconfig"/>
+    <AuthenticateFeature description="Access to spraying files"
+                         path="FileSprayAccess"
+                         resource="FileSprayAccess"
+                         service="ws_fs"/>
+    <AuthenticateFeature description="Access to SNMP metrics information"
+                         path="MetricsAccess"
+                         resource="MetricsAccess"
+                         service="ws_machine"/>
+    <AuthenticateFeature description="Access to own workunits"
+                         path="OwnWorkunitsAccess"
+                         resource="OwnWorkunitsAccess"
+                         service="ws_workunits"/>
+    <Authenticate access="Read"
+                  description="Root access to SMC service"
+                  path="/"
+                  required="Read"
+                  resource="SmcAccess"/>
+    <ProcessFilters>
+     <Platform name="Windows">
+      <ProcessFilter multipleInstances="true" name="EspProcess">
+       <Process name="dafilesrv" remove="true"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="DfuServerProcess"/>
+      <ProcessFilter multipleInstances="true" name="EclCCServerProcess"/>
+      <ProcessFilter name="any">
+       <Process name="dafilesrv"/>
+      </ProcessFilter>
+     </Platform>
+     <Platform name="Linux">
+      <ProcessFilter multipleInstances="true" name="EspProcess">
+       <Process name="dafilesrv" remove="true"/>
+      </ProcessFilter>
+      <ProcessFilter multipleInstances="true" name="DfuServerProcess"/>
+      <ProcessFilter multipleInstances="true" name="EclCCServerProcess"/>
+      <ProcessFilter name="any">
+       <Process name="dafilesrv"/>
+      </ProcessFilter>
+      <ProcessFilter name="GenesisServerProcess">
+       <Process name="atftpd"/>
+       <Process name="httpd"/>
+       <Process name="dhcpd"/>
+      </ProcessFilter>
+     </Platform>
+    </ProcessFilters>
+    <AuthenticateFeature description="Access to ECL direct service"
+                         path="EclDirectAccess"
+                         resource="EclDirectAccess"
+                         service="ecldirect"/>
+   </Properties>
+  </EspService>
+  <EspService build="_"
+              buildSet="ws_ecl"
+              description="WS ECL Service"
+              name="myws_ecl"
+              roxieTimeout="300"
+              workunitTimeout="600">
+   <Properties bindingType="ws_eclSoapBinding"
+               defaultPort="8002"
+               defaultResourcesBasedn="ou=WsEcl,ou=EspServices,ou=ecl"
+               defaultSecurePort="18002"
+               plugin="ws_ecl"
+               type="ws_ecl">
+    <AuthenticateFeature description="Access to WS ECL service"
+                         path="WsEclAccess"
+                         resource="WsEclAccess"
+                         service="ws_ecl"/>
+    <Authenticate access="Read"
+                  description="Root access to WS ECL service"
+                  path="/"
+                  required="Read"
+                  resource="WsEclAccess"/>
+   </Properties>
+  </EspService>
+{% endif %}
+{% if groups['ftslave'] is defined %}
+{% set myftslave=groups['ftslave'][0] %}
+  <FTSlaveProcess build="_"
+                  buildSet="ftslave"
+                  description="FTSlave process"
+{{mac.DEFAULT('                  ',myftslave,'name',myftslave,'')}}
+                  version="1">
+{% for thisftslave in groups[myftslave] %}
+   <Instance computer="node{{ hostvars[thisftslave]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/myftslave"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[thisftslave]['inventory_hostname'] }}"
+             program="/opt/HPCCSystems/bin/ftslave"/>
+{% endfor %}
+  </FTSlaveProcess>
+{% else %} 
+  <FTSlaveProcess build="_"
+                  buildSet="ftslave"
+                  description="FTSlave process"
+                  name="myftslave"
+                  version="1">
+{% for host in groups['all'] %}
+{% if (host != 'localhost') and (host | ipaddr) %}
+   <Instance computer="node{{ hostvars[host]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/myftslave"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[host]['inventory_hostname'] }}"
+             program="/opt/HPCCSystems/bin/ftslave"/>
+{% endif %}
+{% endfor %}
+  </FTSlaveProcess>
+{% endif %}
+{% if groups['ldap'] is defined %}
+{% for myldap in groups['ldap'] %}
+  <LDAPServerProcess build="_"
+                     buildSet="ldapServer"
+{{mac.DEFAULT('                     ',myldap,'cacheTimeout','30','')}}
+                     description="LDAP server process"
+                     filesBasedn="ou=files,ou=ecl"
+                     groupsBasedn="ou=groups,ou=ecl,dc=internal,dc=sds"
+                     ldapPort="389"
+                     ldapSecurePort="636"
+{{mac.REQUIRED('                     ',myldap,'modulesBasedn','')}}
+{{mac.DEFAULT('                     ',myldap,'name',myldap,'')}}
+                     sudoersBasedn="ou=SUDOers"
+{{mac.REQUIRED('                     ',myldap,'systemBasedn','')}}
+                     systemCommonName="in_ternal"
+{{mac.DEFAULT('                     ',myldap,'systemPassword','blanked','')}}
+                     systemUser="in_ternal"
+{{mac.REQUIRED('                     ',myldap,'usersBasedn','')}}
+{{mac.REQUIRED('                     ',myldap,'workunitsBasedn','>')}}
+{% for ldapip in groups[myldap] %}
+   <Instance computer="node{{ hostvars[ldapip]['inventory_hostname'] | ipaddr('int') }}"
+{% if (hostvars[myldap]['name'] is defined) and (loop.index==1) and (groups[myldap]|count > 1) %}
+             directory="/var/lib/HPCCSystems/{{hostvars[myldap]['name']}}"
+{% endif %}
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[ldapip]['inventory_hostname'] }}"/>
+{% endfor %}
+  </LDAPServerProcess>
+{% endfor %}
+{% endif %}
+{% if groups['sqlprocess'] is defined %}
+{% for mysql in groups['sqlprocess'] %}
+  <MySQLProcess build="_"
+                buildSet="mysqlserver"
+                computer="node{{ hostvars[groups[mysql][0]]['inventory_hostname']|ipaddr('int') }}"
+                description="MySQL database"
+{{mac.DEFAULT('                ',mysql,'name',mysql,'')}}
+                port=""/>
+{% endfor %}
+{% endif %}
+{%if groups['sasha'] is defined%}
+{% set mysasha=groups['sasha'][0] %}
+  <SashaServerProcess autoRestartInterval="0"
+                      build="_"
+                      buildSet="sasha"
+                      cachedWUat="* * * * *"
+                      cachedWUinterval="24"
+                      cachedWUlimit="100"
+                      coalesceAt="* * * * *"
+{{mac.DEFAULT('                      ',mysasha,'coalesceInterval','1','')}}
+                      dafsmonAt="* * * * *"
+                      dafsmonInterval="0"
+                      dafsmonList="*"
+{{mac.REQUIRED('                      ',mysasha,'daliServers','',daliservers)}}
+                      description="Sasha Server process"
+                      DFUrecoveryAt="* * * * *"
+                      DFUrecoveryCutoff="4"
+                      DFUrecoveryInterval="12"
+                      DFUrecoveryLimit="20"
+                      DFUWUat="* * * * *"
+                      DFUWUcutoff="14"
+                      DFUWUduration="0"
+                      DFUWUinterval="24"
+{{mac.DEFAULT('                      ',mysasha,'DFUWUlimit','1000','')}}
+                      DFUWUthrottle="0"
+                      ExpiryAt="* 3 * * *"
+{{mac.OMIT('                      ',mysasha,'ExpiryDefault','')}}
+                      ExpiryInterval="24"
+                      keepResultFiles="false"
+                      LDSroot="LDS"
+                      logDir="."
+{{mac.OMIT('                      ',mysasha,'memoryLimit','')}}
+                      minDeltaSize="50000"
+{{mac.DEFAULT('                      ',mysasha,'name',mysasha,'')}}
+{{mac.OMIT('                      ',mysasha,'PersistExpiryDefault','')}}
+                      recoverDeltaErrors="false"
+{{mac.OMIT('                      ',mysasha,'suspendCoalescerDuringXref','')}}
+{{mac.DEFAULT('                      ',mysasha,'thorQMonInterval','1','')}}
+                      thorQMonQueues="*"
+{{mac.DEFAULT('                      ',mysasha,'thorQMonSwitchMinTime','0','')}}
+                      WUat="* * * * *"
+                      WUbackup="0"
+{{mac.DEFAULT('                      ',mysasha,'WUcutoff','8','')}}
+                      WUduration="0"
+                      WUinterval="6"
+{{mac.DEFAULT('                      ',mysasha,'WUlimit','1000','')}}
+{{mac.DEFAULT('                      ',mysasha,'WUretryinterval','7','')}}
+                      WUthrottle="0"
+{{mac.DEFAULT('                      ',mysasha,'xrefAt','* 2 * * *','')}}
+{{mac.DEFAULT('                      ',mysasha,'xrefCutoff','1','')}}
+                      xrefEclWatchProvider="true"
+{{mac.DEFAULT('                      ',mysasha,'xrefInterval','672','')}}
+                      xrefList="*"
+{{mac.OMIT('                      ',mysasha,'xrefMaxMemory','')}}
+                      xrefMaxScanThreads="500">
+{% for thissasha in groups[mysasha] %}
+   <Instance computer="node{{ hostvars[thissasha]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mysasha"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[thissasha]['inventory_hostname'] }}"
+             port="8877"/>
+{% endfor %}
+  </SashaServerProcess>
+{% else %}
+{% if groups['master'] is defined %}
+  <SashaServerProcess autoRestartInterval="0"
+                      build="_"
+                      buildSet="sasha"
+                      cachedWUat="* * * * *"
+                      cachedWUinterval="24"
+                      cachedWUlimit="100"
+                      coalesceAt="* * * * *"
+                      coalesceInterval="1"
+                      dafsmonAt="* * * * *"
+                      dafsmonInterval="0"
+                      dafsmonList="*"
+{{mac.REQUIRED('                      ','mysasha','daliServers','',daliservers)}}
+                      description="Sasha Server process"
+                      DFUrecoveryAt="* * * * *"
+                      DFUrecoveryCutoff="4"
+                      DFUrecoveryInterval="12"
+                      DFUrecoveryLimit="20"
+                      DFUWUat="* * * * *"
+                      DFUWUcutoff="14"
+                      DFUWUduration="0"
+                      DFUWUinterval="24"
+                      DFUWUlimit="1000"
+                      DFUWUthrottle="0"
+                      ExpiryAt="* 3 * * *"
+                      ExpiryDefault="14"
+                      ExpiryInterval="24"
+                      keepResultFiles="false"
+                      LDSroot="LDS"
+                      logDir="."
+                      minDeltaSize="50000"
+                      name="mysasha"
+                      PersistExpiryDefault="7"
+                      recoverDeltaErrors="false"
+                      suspendCoalescerDuringXref="true"
+                      thorQMonInterval="1"
+                      thorQMonQueues="*"
+                      thorQMonSwitchMinTime="0"
+                      WUat="* * * * *"
+                      WUbackup="0"
+                      WUcutoff="8"
+                      WUduration="0"
+                      WUinterval="6"
+                      WUlimit="1000"
+                      WUretryinterval="7"
+                      WUthrottle="0"
+                      xrefAt="* 2 * * *"
+                      xrefCutoff="1"
+                      xrefEclWatchProvider="true"
+                      xrefInterval="672"
+                      xrefList="*"
+                      xrefMaxMemory="4096"
+                      xrefMaxScanThreads="500">
+   <Instance computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/mysasha"
+             name="s1"
+             netAddress="{{  groups[groups['master'][0]][0] }}"
+             port="8877"/>
+  </SashaServerProcess>
+{% else %}
+<!-- ANSIBLE TEMPLATE WARNING: NO sasha is defined and NO master is defined where a sasha could be placed -->
+{%endif%}
+{%endif%}
+{% if groups['roxie'] is defined %}
+{% for myroxie in groups['roxie'] %}
+{{mac.OMIT('  <RoxieCluster ',myroxie,'acePoolSize','')}}
+{{mac.OMIT('                ',myroxie,'affinity','')}}
+                allFilesDynamic="false"
+                blindLogging="false"
+                blobCacheMem="0"
+                build="_"
+                buildSet="roxie"
+                callbackRetries="3"
+{{mac.DEFAULT('                ',myroxie,'callbackTimeout','500','')}}
+{{mac.DEFAULT('                ',myroxie,'channelsPerNode','2','')}}
+                checkCompleted="true"
+                checkFileDate="true"
+{{mac.DEFAULT('                ',myroxie,'copyResources','true','')}}
+{{mac.OMIT('                ',myroxie,'coresPerQuery','')}}
+{{mac.OMIT('                ',myroxie,'crcResources','')}}
+                cyclicOffset="1"
+                dafilesrvLookupTimeout="10000"
+{{mac.REQUIRED('                ',myroxie,'daliServers','',daliservers)}}
+                debugPermitted="true"
+                defaultConcatPreload="0"
+                defaultFetchPreload="0"
+                defaultFullKeyedJoinPreload="0"
+                defaultHighPriorityTimeLimit="0"
+{{mac.DEFAULT('                ',myroxie,'defaultHighPriorityTimeWarning','5000','')}}
+                defaultKeyedJoinPreload="0"
+                defaultLowPriorityTimeLimit="0"
+{{mac.DEFAULT('                ',myroxie,'defaultLowPriorityTimeWarning','0','')}}
+{{mac.DEFAULT('                ',myroxie,'defaultMemoryLimit','0','')}}
+                defaultParallelJoinPreload="0"
+                defaultPrefetchProjectPreload="10"
+                defaultSLAPriorityTimeLimit="0"
+{{mac.DEFAULT('                ',myroxie,'defaultSLAPriorityTimeWarning','5000','')}}
+                defaultStripLeadingWhitespace="1"
+                description="Roxie cluster"
+{{mac.DEFAULT('                ',myroxie,'directory','/var/lib/HPCCSystems/myroxie','')}}
+                diskReadBufferSize="65536"
+                doIbytiDelay="true"
+{{mac.DEFAULT('                ',myroxie,'enableHeartBeat','true','')}}
+{{mac.DEFAULT('                ',myroxie,'enableKeyDiff','true','')}}
+{{mac.DEFAULT('                ',myroxie,'enableSysLog','true','')}}
+                fastLaneQueue="true"
+                fieldTranslationEnabled="false"
+                flushJHtreeCacheOnOOM="true"
+                forceStdLog="false"
+{{mac.OMIT('                ',myroxie,'heapRetainMemory','')}}
+                heapUseHugePages="false"
+{{mac.OMIT('                ',myroxie,'heapUseTransparentHugePages','')}}
+                highTimeout="2000"
+                ignoreMissingFiles="false"
+                ignoreOrphans="true"
+                indexReadChunkSize="60000"
+{{mac.DEFAULT('                ',myroxie,'initIbytiDelay','100','')}}
+                jumboFrames="false"
+{{mac.DEFAULT('                ',myroxie,'lazyOpen','true','')}}
+{{mac.DEFAULT('                ',myroxie,'ldapPassword','','')}}
+{{mac.DEFAULT('                ',myroxie,'ldapUser','roxie','')}}
+{{mac.DEFAULT('                ',myroxie,'leafCacheMem','50','')}}
+                linuxYield="false"
+                localFilesExpire="-1"
+                localSlave="false"
+                lockDali="false"
+{{mac.OMIT('                ',myroxie,'lockSuperFiles','')}}
+{{mac.DEFAULT('                ',myroxie,'logFullQueries','false','')}}
+                logQueueDrop="32"
+                logQueueLen="512"
+                lowTimeout="10000"
+{{mac.DEFAULT('                ',myroxie,'maxBlockSize','10000000','')}}
+                maxLocalFilesOpen="4000"
+                maxLockAttempts="5"
+{{mac.DEFAULT('                ',myroxie,'maxRemoteFilesOpen','1000','')}}
+                memoryStatsInterval="60"
+                memTraceLevel="1"
+                memTraceSizeLimit="0"
+{{mac.DEFAULT('                ',myroxie,'minFreeDiskSpace','1073741824','')}}
+{{mac.DEFAULT('                ',myroxie,'minIbytiDelay','0','')}}
+                minLocalFilesOpen="2000"
+{{mac.DEFAULT('                ',myroxie,'minRemoteFilesOpen','500','')}}
+                miscDebugTraceLevel="0"
+                monitorDaliFileServer="false"
+{{mac.DEFAULT('                ',myroxie,'multicastBase','239.1.1.1','')}}
+{{mac.DEFAULT('                ',myroxie,'multicastLast','239.1.254.254','')}}
+{{mac.OMIT('                ',myroxie,'multicastTTL','')}}
+{{mac.DEFAULT('                ',myroxie,'name',myroxie,'')}}
+{{mac.DEFAULT('                ',myroxie,'nodeCacheMem','100','')}}
+                nodeCachePreload="false"
+{{mac.DEFAULT('                ',myroxie,'numDataCopies','1','')}}
+                parallelAggregate="0"
+                perChannelFlowLimit="10"
+{{mac.DEFAULT('                ',myroxie,'pingInterval','60','')}}
+                pluginsPath="/opt/HPCCSystems/plugins"
+                preabortIndexReadsThreshold="100"
+                preabortKeyedJoinsThreshold="100"
+                preferredSubnet=""
+                preferredSubnetMask=""
+                preloadOnceData="true"
+{{mac.OMIT('                ',myroxie,'prestartSlaveThreads','')}}
+{{mac.OMIT('                ',myroxie,'reloadRetriesFailed','')}}
+{{mac.DEFAULT('                ',myroxie,'remoteFilesExpire','3600000','')}}
+{{mac.DEFAULT('                ',myroxie,'roxieMulticastEnabled','true','')}}
+                serverSideCacheSize="0"
+                serverThreads="30"
+                simpleLocalKeyedJoins="true"
+                siteCertificate=""
+                slaTimeout="2000"
+{{mac.DEFAULT('                ',myroxie,'slaveConfig','','')}}
+{{mac.OMIT('                ',myroxie,'slaveQueryReleaseDelaySeconds','')}}
+                slaveThreads="30"
+                soapTraceLevel="1"
+                socketCheckInterval="5000"
+                SSHidentityfile="$HOME/.ssh/id_rsa"
+                SSHpassword=""
+                SSHretries="3"
+                SSHtimeout="0"
+                SSHusername="hpcc"
+                statsExpiryTime="3600"
+                systemMonitorInterval="60000"
+{{mac.DEFAULT('                ',myroxie,'totalMemoryLimit','1073741824','')}}
+{{mac.OMIT('                ',myroxie,'traceEnabled','')}}
+{{mac.DEFAULT('                ',myroxie,'traceLevel','1','')}}
+{{mac.OMIT('                ',myroxie,'traceLimit','')}}
+                trapTooManyActiveQueries="true"
+{{mac.DEFAULT('                ',myroxie,'udpFlowSocketsSize','131071','')}}
+{{mac.DEFAULT('                ',myroxie,'udpInlineCollation','false','')}}
+                udpInlineCollationPacketLimit="50"
+{{mac.DEFAULT('                ',myroxie,'udpLocalWriteSocketSize','131071','')}}
+{{mac.DEFAULT('                ',myroxie,'udpMaxRetryTimedoutReqs','0','')}}
+                udpMaxSlotsPerClient="2147483647"
+{{mac.DEFAULT('                ',myroxie,'udpMulticastBufferSize','131071','')}}
+{{mac.DEFAULT('                ',myroxie,'udpOutQsPriority','0','')}}
+                udpQueueSize="100"
+                udpRequestToSendTimeout="5"
+{{mac.DEFAULT('                ',myroxie,'udpResendEnabled','false','')}}
+                udpRetryBusySenders="0"
+                udpSendCompletedInData="false"
+                udpSendQueueSize="50"
+                udpSnifferEnabled="true"
+                udpTraceLevel="1"
+                useHardLink="false"
+                useLogQueue="true"
+                useMemoryMappedIndexes="false"
+{{mac.DEFAULT('                ',myroxie,'useRemoteResources','true','')}}
+{{mac.OMIT('                ',myroxie,'useTreeCopy','>')}}
+{# == ADD PreferredCluster attributes == #}
+{% for subgroup in groups[myroxie] %}
+{% if ( not subgroup | ipaddr) and (hostvars[subgroup]['forprocess']=='PreferredCluster') %}
+{{mac.REQUIRED('   <PreferredCluster ',subgroup,'name','')}}
+{{mac.REQUIRED('                     ',subgroup,'priority','/>')}}
+{% endif %}
+{% endfor %}
+{# == END ADD PreferredCluster attributes == #}
+{# == ADD RoxieFarmProcess attributes == #}
+{% set FoundRoxieFarmProcess=[] %}
+{% set nFarms=1 %}
+{% for subgroup in groups[myroxie] %}
+{% if ( not subgroup | ipaddr) and (hostvars[subgroup]['forprocess']=='RoxieFarmProcess') %}
+   <RoxieFarmProcess aclName=""
+                     listenQueue="200"
+                     name="farm{{ nFarms }}"
+{{mac.REQUIRED('                     ',subgroup,'numThreads','')}}
+{{mac.REQUIRED('                     ',subgroup,'port','')}}
+                     requestArrayThreads="5"/>
+{%if FoundRoxieFarmProcess.append(1)%}{%endif %}
+{% set nFarms=nFarms+1 %}
+{% endif %}
+{% endfor %}
+{% if not FoundRoxieFarmProcess %}
+   <RoxieFarmProcess aclName=""
+                     listenQueue="200"
+                     name="farm1"
+                     numThreads="30"
+                     port="9876"
+                     requestArrayThreads="5"/>
+   <RoxieFarmProcess aclName=""
+                     listenQueue="200"
+                     name="farm2"
+                     numThreads="30"
+                     port="0"
+                     requestArrayThreads="5"/>
+{% endif %}
+{# == END ADD RoxieFarmProcess attributes == #}
+{% for roxieip in groups[myroxie] %}
+{% if roxieip | ipaddr %}
+   <RoxieServerProcess computer="node{{ hostvars[roxieip]['inventory_hostname']|ipaddr('int') }}"
+                       name="node{{ roxieip|ipaddr('int') }}"
+                       netAddress="{{ roxieip }}"/>
+{% endif %}
+{% endfor %}
+  </RoxieCluster>
+{% endfor %}
+{% endif %}
+{% if groups['eclcc'] is defined %}
+{% for myeclcc in groups['eclcc'] %}
+  <EclCCServerProcess build="_"
+                      buildSet="eclccserver"
+{{mac.REQUIRED('                      ',myeclcc,'daliServers','',daliservers)}}
+                      description="EclCCServer process"
+                      enableSysLog="true"
+                      generatePrecompiledHeader="true"
+                      maxEclccProcesses="4"
+{{mac.DEFAULT('                      ',myeclcc,'name',myeclcc,'')}}
+                      traceLevel="1">
+{% for thiseclcc in groups[myeclcc] %}
+   <Instance computer="node{{ hostvars[thiseclcc]['inventory_hostname'] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/{{myeclcc}}"
+             name="s{{ loop.index }}"
+             netAddress="{{ hostvars[thiseclcc]['inventory_hostname'] }}"/>
+{% endfor %}
+  </EclCCServerProcess>
+{% endfor %}
+{% elif ( groups['eclserver'] is not defined ) %}{# THIS IS HERE BECAUSE I'm assuming you must have at least one eclserver or eclcc #}
+{% if ( groups['master'] is defined ) %} 
+  <EclCCServerProcess build="_"
+                      buildSet="eclccserver"
+{{mac.REQUIRED('                      ','myeclcc','daliServers','',daliservers)}}
+                      description="EclCCServer process"
+                      enableSysLog="true"
+                      generatePrecompiledHeader="true"
+                      maxEclccProcesses="4"
+                      name="myeclcc"
+                      traceLevel="1">
+   <Instance computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+             directory="/var/lib/HPCCSystems/myeclccserver"
+             name="s1"
+             netAddress="{{ groups[groups['master'][0]][0] }}"/>
+  </EclCCServerProcess>
+{% else %}
+<!-- ANSIBLE TEMPLATE WARNING: There is NO eclserver or eclcc. And NO master where one could be placed -->
+{% endif %}
+{% endif %}
+{% if groups['thor'] is defined %}
+{#DEBUG: THOR GROUP DEFINED#}
+{% for mythor in groups['thor'] %}
+{% set loop_index_minus_1=loop.index-1 %}
+{{mac.OMIT('  <ThorCluster ',mythor,'allowedPipePrograms','')}}
+{{mac.OMIT('               ',mythor,'autoAffinity','')}}
+{{mac.OMIT('               ',mythor,'autoCopyBackup','')}}
+               build="_"
+               buildSet="thor"
+{{mac.OMIT('               ',mythor,'channelsPerSlave','')}}
+{{mac.OMIT('               ',mythor,'checkPointRecovery','')}}
+{{mac.OMIT('               ',mythor,'compressInternalSpills','')}}
+{% if groups['master'] is defined %}
+               computer="node{{ groups[groups['master'][loop_index_minus_1]][0] | ipaddr('int') }}"
+{% else %}
+ANSIBLE TEMPLATE ERROR: NO master defined. So we CANNOT set 'computer' for THOR="{{mythor}}".
+{% endif %}
+{{mac.REQUIRED('                    ',mythor,'daliServers','',daliservers)}}
+{{mac.OMIT('               ',mythor,'defaultOutputNodeGroup','')}}
+               description="Thor process"
+{{mac.OMIT('               ',mythor,'fileCacheLimit','')}}
+{{mac.OMIT('               ',mythor,'heapRetainMemory','')}}
+{{mac.OMIT('               ',mythor,'heapUseHugePages','')}}
+{{mac.OMIT('               ',mythor,'heapUseTransparentHugePages','')}}
+{{mac.OMIT('               ',mythor,'globalMemorySize','')}}
+{{mac.OMIT('               ',mythor,'localThor','')}}
+{{mac.OMIT('               ',mythor,'localThorPortInc','')}}
+{{mac.OMIT('               ',mythor,'masterMemorySize','')}}
+{{mac.OMIT('               ',mythor,'masterport','')}}
+               monitorDaliFileServer="true"
+{{mac.OMIT('               ',mythor,'multiSlaves','')}}
+{{mac.OMIT('               ',mythor,'numaBindLocal','')}}
+{{mac.DEFAULT('               ',mythor,'name',mythor,'')}}
+{% if hostvars[mythor]['nodeGroup'] is defined %}
+               nodeGroup="{{hostvars[mythor]['nodeGroup']}}"
+{% else %}
+{% if hostvars[mythor]['name'] is defined %}
+               nodeGroup="{{hostvars[mythor]['name']}}"
+{% else %}
+               nodeGroup="{{mythor}}"
+{% endif %}
+{% endif %}
+               pluginsPath="/opt/HPCCSystems/plugins/"
+{{mac.OMIT('               ',mythor,'replicateAsync','')}}
+{{mac.DEFAULT('               ',mythor,'replicateOutputs','true','')}}
+{{mac.OMIT('               ',mythor,'slaveport','')}}
+{{mac.OMIT('               ',mythor,'slaveDownTimeout','')}}
+{{mac.OMIT('               ',mythor,'slavesPerNode','')}}
+{{mac.OMIT('               ',mythor,'smallSortThreshold','')}}
+{{mac.OMIT('               ',mythor,'verifyDaliConnectionInterval','')}}
+               watchdogEnabled="true"
+               watchdogProgressEnabled="true"
+{{mac.OMIT('               ',mythor,'watchdogProgressInterval','>')}}
+   <Debug/>
+   <SSH SSHidentityfile="$HOME/.ssh/id_rsa"
+        SSHpassword=""
+        SSHretries="3"
+        SSHtimeout="0"
+        SSHusername="hpcc"/>
+   <Storage/>
+   <SwapNode/>
+{% if (groups['master'] is defined) and (groups[groups['master'][loop_index_minus_1]] is defined) %}
+   <ThorMasterProcess computer="node{{ groups[groups['master'][loop_index_minus_1]][0] | ipaddr('int') }}" name="m1"/>
+{% else %}
+ANSIBLE TEMPLATE ERROR: NO master given OR one is not given at position, {{loop_index_minus_1}}, in your inventory file. 
+{% endif %}
+{% for slaveip in groups[mythor] %}
+   <ThorSlaveProcess computer="node{{ hostvars[slaveip]['inventory_hostname']|ipaddr('int') }}" name="s{{ loop.index }}"/>
+{% endfor %}
+  </ThorCluster>
+{% endfor %}
+{% endif %}
+  <Directories name="HPCCSystems">
+   <Category dir="/var/lib/[NAME]/hpcc-data/[COMPONENT]" name="data"/>
+   <Category dir="/var/lib/[NAME]/queries/[INST]" name="query"/>
+   <Category dir="/var/lib/[NAME]/hpcc-data2/[COMPONENT]" name="data2"/>
+   <Category dir="/etc/[NAME]/[INST]" name="conf"/>
+   <Category dir="/var/lib/[NAME]/[INST]/temp" name="temp"/>
+   <Category dir="/var/log/[NAME]/[INST]" name="log"/>
+   <Category dir="/var/lib/[NAME]/hpcc-data3/[COMPONENT]" name="data3"/>
+   <Category dir="/var/lib/[NAME]/hpcc-mirror/[COMPONENT]" name="mirror"/>
+   <Category dir="/var/lock/[NAME]/[INST]" name="lock"/>
+   <Category dir="/var/lib/[NAME]/[INST]" name="run"/>
+  </Directories>
+{% if groups['dropzone'] is defined %}
+{% for dz in groups['dropzone'] %}
+  <DropZone build="_"
+            buildSet="DropZone"
+            computer="node{{  groups[dz][0] | ipaddr('int') }}"
+            description="DropZone process"
+{{mac.DEFAULT('            ',dz,'directory','/var/lib/HPCCSystems/mydropzone','')}}
+{{mac.DEFAULT('            ',dz,'name',dz,'')}}
+{{mac.OMIT('            ',dz,'umask','/>')}}
+{% endfor %}
+{% else %} 
+{% if groups['master'] is defined %}
+  <DropZone build="_"
+            buildSet="DropZone"
+            computer="node{{  groups[groups['master'][0]][0] | ipaddr('int') }}"
+            description="DropZone process"
+            directory="/var/lib/HPCCSystems/mydropzone"
+            name="mydropzone"
+            umask="002"/>
+{% else %}
+<!-- ANSIBLE TEMPLATE WARNING: NO drop zone is defined and NO master is defined where a drop zone could be placed -->
+{% endif -%}
+{% endif -%}
+{% if groups['topology'] is defined %}
+ANSIBLE TEMPLATE ERROR: IN YOUR INVENTORY FILE, THE 'topology' GROUP WAS DEFINED BUT NO TEMPLATE CODE EXISTS FOR HANDLING IT.
+{% elif (groups['thor'] is defined) or (groups['roxie'] is defined) %}
+  <Topology build="_" buildSet="topology" name="topology">
+ {% if groups['thor'] is defined %}
+  {% set thor_nodeGroups=[] %}
+  {{mac.nodeGroupList('thor',thor_nodeGroups)}}
+{#DEBUG: In Topology. thor_nodeGroups=({{thor_nodeGroups}}).#}
+  {% for athorofnodegroup in thor_nodeGroups %}
+   <Cluster name="{{athorofnodegroup}}" prefix="{{athorofnodegroup}}">
+   {{mac.defineProcesses('thor',athorofnodegroup,eclagents,eclschedulers,eclservers,eclccs)}}
+   {{mac.defineClusters('thor',athorofnodegroup)}}
+   </Cluster>
+  {% endfor %}
+ {% endif %}
+ {% if groups['roxie'] is defined %}
+  {% set roxie_nodeGroups=[] %}
+  {{mac.nodeGroupList('roxie',roxie_nodeGroups)}}
+  {% for aroxieofnodegroup in roxie_nodeGroups %}
+   <Cluster name="{{aroxieofnodegroup}}" prefix="{{aroxieofnodegroup}}">
+   {{mac.defineProcesses('roxie',aroxieofnodegroup,eclagents,eclschedulers,eclservers,eclccs)}}
+   {{mac.defineClusters('roxie',aroxieofnodegroup)}}
+   </Cluster>
+  {% endfor %}
+ {% endif %}
+ {% if groups['topology-overrides'] is defined %}
+  {% for cluster in groups['topology-overrides'] %}
+   {% if hostvars[cluster]['clustertype'] == 'thor' %}
+   <Cluster name="{{cluster}}" prefix="{{cluster}}">
+   {{mac.defineProcesses('thor',cluster,eclagents,eclschedulers,eclservers,eclccs)}}
+   {{mac.defineClusters('thor',cluster)}}
+   </Cluster>
+   {% elif hostvars[cluster]['clustertype'] == 'roxie' %}
+   <Cluster name="{{cluster}}" prefix="{{cluster}}">
+   {{mac.defineProcesses('roxie',cluster,eclagents,eclschedulers,eclservers,eclccs)}}
+   {{mac.defineClusters('roxie',cluster)}}
+   </Cluster>
+   {% endif %}
+  {% endfor %}
+ {% endif %}
+ {% if groups['hthor'] is defined %}
+  {% set hthor_clusters_defined=[] %}
+  {% for myhthor in groups['hthor'] %}
+   {% if hostvars[myhthor]['name'] is defined %}
+    {%if hthor_clusters_defined.append(1)%}{%endif %}
+   <Cluster name="{{hostvars[myhthor]['name']}}" prefix="{{hostvars[myhthor]['name']}}">
+   {% set hthor_nodeGroup=[myhthor] %}
+   {{mac.defineProcesses('hthor',hthor_nodeGroup,eclagents,eclschedulers,eclservers,eclccs)}}
+   </Cluster>
+   {% else %}
+   ANSIBLE TEMPLATE ERROR: IN INVENTORY FILE VARIABLE, "name" WAS NOT DEFINED FOR group hthor.
+   {% endif %}
+  {% endfor %}
+  {% set hthors_exists=hthor_clusters_defined|count %}
+  {% if hthors_exists==0 %}
+   <Cluster name="hthor" prefix="hthor">
+   {% set hthor_nodeGroup=['hthor'] %}
+   {{mac.defineProcesses('hthor',hthor_nodeGroup,eclagents,eclschedulers,eclservers,eclccs)}}
+   </Cluster>
+  {% endif %}
+ {% else %}
+{#DEBUG: In Topology Attribute. Should get here only when hthor group NOT in inventory file.#}
+{#DEBUG: eclagents[0]="{{eclagents[0]}}", eclschedulers[0]="{{eclschedulers[0]}}", eclccs[0]="{{eclccs[0]}}"#}
+   <Cluster name="hthor" prefix="hthor">
+   {% set hthor_nodeGroup=['hthor'] %}
+   {{mac.defineProcesses('hthor',hthor_nodeGroup,eclagents,eclschedulers,eclservers,eclccs)}}
+   </Cluster>
+ {% endif %}
+  </Topology>
+{% else %}
+ANSIBLE TEMPLATE ERROR: IN INVENTORY FILE, NO THOR OR ROXIE DEFINED. MUST HAVE AT LEAST ONE OF THESE.
+{% endif %}
+ </Software>
+</Environment>

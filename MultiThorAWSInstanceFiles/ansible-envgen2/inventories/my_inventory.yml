@@ -1,0 +1,16 @@
+[master]
+master_01 name="master_01"
+
+[master_01]
+10.0.0.16
+
+[thor]
+thor_01 name="thor_01" slavesPerNode="2"
+thor_02 name="thor_02" slavesPerNode="3"
+
+[thor_01]
+10.0.0.220
+10.0.0.200
+
+[thor_02]
+10.0.0.204

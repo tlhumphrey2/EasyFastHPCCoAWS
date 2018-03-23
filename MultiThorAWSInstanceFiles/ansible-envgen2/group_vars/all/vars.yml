@@ -1,0 +1,9 @@
+mypath: "{{userhome}}"
+repopath: "{{mypath}}/ansible-envgen2"
+ansiblepath: "{{repopath}}"
+cftemplatepath: "{{repopath}}/files"
+
+year: "{{ '%04d'|format(ansible_date_time.year|int) }}"
+month: "{{ '%02d'|format(ansible_date_time.month|int) }}"
+day: "{{ '%02d'|format(ansible_date_time.day|int) }}"
+current_date: "{{year}}{{month}}{{day}}"
