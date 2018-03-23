@@ -51,13 +51,13 @@
         "ScriptsS3BucketFolder" : {
             "Type" : "String",
             "Description" : "S3 bucket folder that contains the scripts that are executed in the UserData section.",
-            "Default" : "s3://BestHoA/MultiThorAWSInstanceFiles"
+            "Default" : ""
         },
 
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
-            "Default" : "tlh_keys_us_east_2"
+            "Default" : ""
         },
 
         "InstallCassandra" : {
@@ -92,14 +92,14 @@
             "Description" : "Comma separated list of slave instances for each THOR.",
             "AllowedPattern" : "^[0-9]+(,[0-9]+)*$",
             "Type" : "String",
-            "Default" : "1,1"
+            "Default" : "3,2"
         },
 
         "RoxieInstancesPerROXIE" : {
             "Description" : "Comma separated list of roxie instances for each ROXIE.",
             "AllowedPattern" : "^[0-9]+(,[0-9]+)*$",
             "Type" : "String",
-            "Default" : "2,2"
+            "Default" : "2"
         },
 
         "SlaveNodesPerInstancePerTHOR" : {
