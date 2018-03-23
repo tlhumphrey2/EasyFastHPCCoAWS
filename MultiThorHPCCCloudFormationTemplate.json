@@ -274,13 +274,13 @@
                   {
                       "ToPort": 22, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "209.243.55.98/32",
+                      "CidrIp": "0.0.0.0/0",
                       "FromPort": 22
                   }, 
                   {
                       "ToPort": 8010, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "209.243.55.98/32",
+                      "CidrIp": "0.0.0.0/0",
                       "FromPort": 8010
                   }, 
                   {
