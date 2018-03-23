@@ -14,17 +14,7 @@ $EIP = (scalar(@ARGV)==1)? shift @ARGV : '' ;
 print "Entering setupCfgFileVariables.pl. Inputted arguments are: stackname=\"$stackname\", region=\"$region\", EIP=\"$EIP\"\n";
 
 # Default values for some configuration variables
-$DefaultValuesOfCfgVariables{'stackname'}=$stackname;
-$DefaultValuesOfCfgVariables{'region'}=$region;
-$DefaultValuesOfCfgVariables{'pem'}='';
-$DefaultValuesOfCfgVariables{'slavesPerNode'}=1;
-$DefaultValuesOfCfgVariables{'roxienodes'}=0;
-$DefaultValuesOfCfgVariables{'supportnodes'}=1;
-$DefaultValuesOfCfgVariables{'non_support_instances'}=1;
-$DefaultValuesOfCfgVariables{'UserNameAndPassword'}='';
-$DefaultValuesOfCfgVariables{'HPCCPlatform'}='HPCC-Platform-5.0.0-3';
-$DefaultValuesOfCfgVariables{'ToS3Bucket'}="s3://${stackname}-backup";
-
+require "$ThisDir/CfgFileVariables.pl";
 #--------------------------------------------------------------------------------
 # Get any configuration variables, and their values, in the instance descriptions.
 #--------------------------------------------------------------------------------

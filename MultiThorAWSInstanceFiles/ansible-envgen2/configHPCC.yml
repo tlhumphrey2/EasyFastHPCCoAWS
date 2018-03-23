@@ -1,0 +1,19 @@
+- hosts: localhost
+  connection: local
+
+# pre_tasks:  
+#   - name: "J2 template file to j2 file using {{repopath}}/files/template2j2.sh {{envtemplate}}"
+#     command: bash -c "{{repopath}}/files/template2j2.sh {{envtemplate}}"
+#   - debug: msg="Completed converting {{envtemplate}}.template to {{envtemplate}}."
+
+  roles:
+    - { role: paas-hpcc-config }
+
+  post_tasks:  
+    - name: "Remove blank lines in {{envout}} using {{repopath}}/files/rmBlankLines.pl {{envout}}"
+      command: bash -c "{{repopath}}/files/rmBlankLines.pl {{envout}}"
+    - debug: msg="Completed removing blank lines in {{envout}}."
+
+    - name: "Check for errors in {{envout}} using {{repopath}}/files/checkForTemplateErrors.pl {{envout}}"
+      command: bash -c "{{repopath}}/files/checkForTemplateErrors.pl {{envout}}"
+    - debug: msg="Completed checking for ANSIBLE TEMPLATE ERRORS in {{envout}}."

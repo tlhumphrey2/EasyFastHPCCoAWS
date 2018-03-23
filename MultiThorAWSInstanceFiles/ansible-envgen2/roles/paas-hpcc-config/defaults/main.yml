@@ -1,0 +1,4 @@
+---
+# defaults file for paas-hpcc-config
+envtemplate: environment.xml.j2
+envout: "{{repopath}}/tmp/environment.xml"

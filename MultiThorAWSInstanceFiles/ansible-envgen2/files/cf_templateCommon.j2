@@ -1,0 +1,159 @@
+{% set pg_instance_types=['m4.large','m4.xlarge','m4.2xlarge','m4.4xlarge','m4.10xlarge','m4.16xlarge','c4.large','c4.xlarge','c4.2xlarge','c4.4xlarge','c4.8xlarge','c3.large','c3.xlarge','c3.2xlarge','c3.4xlarge','c3.8xlarge','cc2.8xlarge','cr1.8xlarge','r3.large','r3.xlarge','r3.2xlarge','r3.4xlarge','r3.8xlarge','r4.large','r4.xlarge','r4.2xlarge','r4.4xlarge','r4.8xlarge','r4.16xlarge','x1.16xlarge','x1.32xlarge','d2.xlarge','d2.2xlarge','d2.4xlarge','d2.8xlarge','hi1.4xlarge','hs1.8xlarge','i2.xlarge','i2.2xlarge','i2.4xlarge','i2.8xlarge','i3.large','i3.xlarge','i3.2xlarge','i3.4xlarge','i3.8xlarge','i3.16xlarge','cg1.4xlarge','g2.2xlarge','g2.8xlarge','p2.xlarge','p2.8xlarge','p2.16xlarge'] %}
+{%macro AllHPCCInstanceTypesPG(AllHPCCInstancesArePg,HPCCInstanceTypes)%}
+{% for itype in HPCCInstanceTypes %}
+{% if itype in pg_instance_types %}
+{%if AllHPCCInstancesArePg.append(itype)%}{%endif%}
+{% endif %}
+{% endfor %}
+{%endmacro%}
+{# MACRO For populating list of hpcc instance types #}
+{%macro populateListOfHPCCInstanceTypes(HPCCInstanceTypes)%}
+{% if (MasterInstanceType is defined)%}
+{%if HPCCInstanceTypes.append(MasterInstanceType)%}{%endif%}
+{% endif %}
+{% if (SlaveInstanceType is defined)%}
+{%if HPCCInstanceTypes.append(SlaveInstanceType)%}{%endif%}
+{% endif %}
+{% if (RoxieInstanceType is defined)%}
+{%if HPCCInstanceTypes.append(RoxieInstanceType)%}{%endif%}
+{% endif %}
+{% if HPCCInstanceTypes|count == 0 %}
+ANSIBLE TEMPLATE ERROR: In MyHPCCCloudFormationTemplate.json.j2. NO HPCC INSTANCE TYPES GIVEN.
+{% endif %}
+{%endmacro%}
+{% macro DefaultValue(parameter,default) %}
+{%- if "parameter" is defined %}
+            "Default" : "{{parameter}}"
+{%- else %}
+            "Default" : "{{default}}"
+{%- endif -%}
+{% endmacro %}
+{#{% macro setInstanceType(InstanceType) %}
+{% if InstanceType is defined %}
+                "{{ InstanceType }}"
+{% else %}
+                "m3.medium",
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c3.8xlarge",
+                "r3.2xlarge",
+                "d2.xlarge",
+                "d2.2xlarge",
+                "d2.4xlarge",
+                "d2.8xlarge",
+                "i2.2xlarge",
+                "i2.4xlarge",
+                "i2.8xlarge"
+{% endif %}
+                ],
+{{ DefaultValue(InstanceType,'r3.2xlarge') }},
+{% endmacro %}#}
+{% macro DiskStorage(ebs_size) %}
+             "BlockDeviceMappings" : [
+{% if (ebs_size is defined) and (ebs_size != '') %}  
+             {       
+                 "DeviceName": "/dev/sdb",
+                 "Ebs" : { "VolumeSize" : "{{ebs_size}}" }
+             }       
+{% else %}
+             {
+                "DeviceName": "/dev/sdb",
+                "VirtualName": "ephemeral0"
+             },
+             {
+                "DeviceName": "/dev/sdc",
+                "VirtualName": "ephemeral1"
+             },
+             {
+                "DeviceName": "/dev/sdd",
+                "VirtualName": "ephemeral2"
+             },
+             {
+                "DeviceName": "/dev/sde",
+                "VirtualName": "ephemeral3"
+             },
+             {
+                "DeviceName": "/dev/sdf",
+                "VirtualName": "ephemeral4"
+             },
+             {
+                "DeviceName": "/dev/sdg",
+                "VirtualName": "ephemeral5"
+             },
+             {
+                "DeviceName": "/dev/sdh",
+                "VirtualName": "ephemeral6"
+             },
+             {
+                "DeviceName": "/dev/sdi",
+                "VirtualName": "ephemeral7"
+             },
+             {
+                "DeviceName": "/dev/sdj",
+                "VirtualName": "ephemeral8"
+             },
+             {
+                "DeviceName": "/dev/sdk",
+                "VirtualName": "ephemeral9"
+             },
+             {
+                "DeviceName": "/dev/sdl",
+                "VirtualName": "ephemeral10"
+             },
+             {
+                "DeviceName": "/dev/sdm",
+                "VirtualName": "ephemeral11"
+             },
+             {
+                "DeviceName": "/dev/sdn",
+                "VirtualName": "ephemeral12"
+             },
+             {
+                "DeviceName": "/dev/sdo",
+                "VirtualName": "ephemeral13"
+             },
+             {
+                "DeviceName": "/dev/sdp",
+                "VirtualName": "ephemeral14"
+             },
+             {
+                "DeviceName": "/dev/sdq",
+                "VirtualName": "ephemeral15"
+             },
+             {
+                "DeviceName": "/dev/sdr",
+                "VirtualName": "ephemeral16"
+             },
+             {
+                "DeviceName": "/dev/sds",
+                "VirtualName": "ephemeral17"
+             },
+             {
+                "DeviceName": "/dev/sdt",
+                "VirtualName": "ephemeral18"
+             },
+             {
+                "DeviceName": "/dev/sdu",
+                "VirtualName": "ephemeral19"
+             },
+             {
+                "DeviceName": "/dev/sdv",
+                "VirtualName": "ephemeral20"
+             },
+             {
+                "DeviceName": "/dev/sdw",
+                "VirtualName": "ephemeral21"
+             },
+             {
+                "DeviceName": "/dev/sdx",
+                "VirtualName": "ephemeral22"
+             },
+             {
+                "DeviceName": "/dev/sdy",
+                "VirtualName": "ephemeral23"
+             }
+{% endif %}
+             ],
+{% endmacro %}

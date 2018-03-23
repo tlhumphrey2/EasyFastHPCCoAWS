@@ -1,0 +1,66 @@
+[master]
+master_01 name="master_01"
+
+[master_01]
+10.0.0.16
+
+[thor]
+thor_01 name="thor_01" slavesPerNode="2"
+thor_02 name="thor_02" slavesPerNode="3"
+
+[thor_01]
+10.0.0.220
+10.0.0.200
+
+[thor_02]
+10.0.0.204
+
+[roxie]
+roxie_01 name="roxie_01"
+
+[roxie_01]
+10.0.0.135
+10.0.0.31
+10.0.0.29
+
+[dropzone]
+dropzone_01 name="dropzone_01"
+
+[dropzone_01]
+10.0.0.16
+
+[dali]
+dali_01 name="dali_01"
+
+[dali_01]
+10.0.0.16
+
+[dfuserver]
+dfuserver_01 name="dfuserver_01"
+
+[dfuserver_01]
+10.0.0.16
+
+[eclcc]
+eclcc_01 name="eclcc_01"
+
+[eclcc_01]
+10.0.0.16
+
+[eclagent]
+eclagent_01 name="eclagent_01"
+
+[eclagent_01]
+10.0.0.16
+
+[eclscheduler]
+eclscheduler_01 name="eclscheduler_01"
+
+[eclscheduler_01]
+10.0.0.16
+
+[sasha]
+sasha_01 name="sasha_01"
+
+[sasha_01]
+10.0.0.16
