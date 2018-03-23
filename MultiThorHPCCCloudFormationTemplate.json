@@ -28,6 +28,11 @@
         "SSHUserName" : {
             "Description" : "The user name used to ssh into an instance",
             "Type" : "String",
+            "AllowedValues" : [
+                "centos",
+                "ec2-user",               
+                "ubuntu"               
+                ],
             "Default" : "ec2-user"
         },
 
