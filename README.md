@@ -1,4 +1,6 @@
-Configuring and deploying an HPCC System on AWS from linux is a three-step process when using the HPCC CloudFormation template, [MyHPCCCloudFormationTemplate.json](MyHPCCCloudFormationTemplate.json), and accompanying scripts found in this repository. The three-step process is:
+Configuring and deploying an HPCC System on AWS from linux is a three-step process when using the HPCC CloudFormation template, [MyHPCCCloudFormationTemplate.json](MyHPCCCloudFormationTemplate.json), and accompanying scripts found in this repository. Also, newly added (as of 2018/03/23) is another Cloudformation template [MultiThorHPCCCloudFormationTemplate.json](MultiThorHPCCCloudFormationTemplate.json) for multi-thor and/or multi-roxie clusters. It is used much like the 1st mentioned template except you put the contents of the folder, MultiThorAWSInstanceFiles, in an s3 bucket with your ssh pem file (step 2, below).
+
+The three-step process is:
 
 1.  Clone the github repository https://github.com/tlhumphrey2/EasyFastHPCCoAWS
 
