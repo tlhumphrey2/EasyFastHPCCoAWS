@@ -1,6 +1,6 @@
 Admin Instance
 
-Here are the instructions for setting up a small instance that can be used to start and stop your hpcc cluster. By doing this, you can reduce the AWS charges significantly. This instance will always be running. But, because it is small and no EBS volume is attached to it, the cost will be small.
+Here are the instructions for setting up a small instance that can be used to start and stop your hpcc cluster. By doing this, you can reduce the AWS charges significantly. This instance will always be running. But, because it is small and only the root EBS volume is attached to it, the cost will be small.
 
 1.  From the github repo, <https://github.com/tlhumphrey2/EasyFastHPCCoAWS>, put the contents of the StopStartHPCC folder in an s3 bucket (I call my bucket, s3://StopStartHPCC). ALSO PUT your private key file in the s3 bucket (the same one you use for the cluster).
 
