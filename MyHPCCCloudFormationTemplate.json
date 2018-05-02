@@ -1,5 +1,20 @@
 {
-    "Description" : "MyHPCCCloudFormationTemplate.json: Configures and deploys and HPCC System.",
+    "Description" : "MyHPCCCloudFormationTemplate.json: Launches instances for fast executing HPCC on AWS. Plus, it sets up and starts HPCC System.",
+
+    "Metadata" : {
+       "AWS::CloudFormation::Interface" : {
+         "ParameterGroups" : [
+           {
+             "Label" : { "default":"HPCC Systems Configuration" },
+             "Parameters" : [ "HPCCPlatform", "NumberOfSlaveInstances", "NumberOfRoxieInstances", "NumberOfSlavesPerInstance", "NumberOfSupportInstances", "ClusterInventoryFile" ]
+           },
+           {
+             "Label" : { "default":"Other Needed Parameters" },
+             "Parameters" : [ "UserNameAndPassword", "KeyPair", "InstallCassandra", "ScriptsS3BucketFolder", "SSHUserName", "EBSVolumesMaster", "EBSVolumesSlaves", "EBSVolumesRoxie", "MasterInstanceType", "SlaveInstanceType", "RoxieInstanceType", "AdminCIDR" ]
+           }
+         ],
+      }
+    },
 
     "Parameters" : {
 
@@ -24,15 +39,34 @@
                 "HPCC-Platform-5.4.0-1",
                 "HPCC-Platform-5.6.0-1",
                 "HPCC-Platform-5.6.4-1",
-                "HPCC-Platform-6.2.22-1"               
+                "HPCC-Platform-6.2.22-1",              
+                "HPCC-Platform-6.4.10-1"               
                 ],
-            "Default" : "HPCC-Platform-6.2.22-1",
+            "Default" : "HPCC-Platform-6.4.10-1",
             "Type" : "String"
         },
 
         "KeyPair" : {
             "Description" : "The EC2 Key Pair to allow SSH access to the instances.",
             "Type" : "AWS::EC2::KeyPair::KeyName",
+            "Default" : ""
+        },
+
+        "EBSVolumesMaster" : {
+            "Description" : "Size in GBs of EBS Volume for Master(optional)",
+            "Type" : "String",
+            "Default" : ""
+        },
+
+        "EBSVolumesSlaves" : {
+            "Description" : "Size in GBs of EBS Volume for Slaves(optional)",
+            "Type" : "String",
+            "Default" : ""
+        },
+
+        "EBSVolumesRoxie" : {
+            "Description" : "Size in GBs of EBS Volume for Roxie(optional)",
+            "Type" : "String",
             "Default" : ""
         },
 
@@ -55,7 +89,7 @@
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "6"
+            "Default" : "2"
         },
 
         "NumberOfRoxieInstances" : {
@@ -67,18 +101,15 @@
         "NumberOfSlavesPerInstance" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "12"
+            "Default" : "2"
         },
 
         "MasterInstanceType" : {
             "Description" : "HPCC Thor Master EC2 instance type",
             "AllowedValues" : [
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
-                "c3.8xlarge",
+                "r3.xlarge",
                 "r3.2xlarge",
+                "r3.4xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
                 "d2.4xlarge",
@@ -87,19 +118,16 @@
                 "i2.4xlarge",
                 "i2.8xlarge"
                 ],
-            "Default" : "i2.8xlarge",
+            "Default" : "r3.xlarge",
             "Type" : "String"
         },
 
         "SlaveInstanceType" : {
             "Description" : "HPCC Thor Slave EC2 instance type",
             "AllowedValues" : [
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
-                "c4.8xlarge",
+                "r3.xlarge",
                 "r3.2xlarge",
+                "r3.4xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
                 "d2.4xlarge",
@@ -108,19 +136,16 @@
                 "i2.4xlarge",
                 "i2.8xlarge"
                 ],
-            "Default" : "i2.8xlarge",
+            "Default" : "r3.xlarge",
             "Type" : "String"
         },
 
         "RoxieInstanceType" : {
             "Description" : "HPCC Roxie EC2 instance type",
             "AllowedValues" : [
-                "c3.large",
-                "c3.xlarge",
-                "c3.2xlarge",
-                "c3.4xlarge",
-                "c4.8xlarge",
+                "r3.xlarge",
                 "r3.2xlarge",
+                "r3.4xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
                 "d2.4xlarge",
@@ -129,7 +154,17 @@
                 "i2.4xlarge",
                 "i2.8xlarge"
                 ],
-            "Default" : "i2.8xlarge",
+            "Default" : "r3.xlarge",
+            "Type" : "String"
+        },
+
+        "AdminCIDR" : {
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription" : "Used for ssh and port 8010. Must be a valid CIDR range of the form x.x.x.x/x.",
+            "Default" : "0.0.0.0/0",
+            "Description" : "CIDR block used for ssh and port 8010.",
+            "MaxLength" : "18",
+            "MinLength" : "9",
             "Type" : "String"
         },
 
@@ -342,7 +377,7 @@
                   {
                       "ToPort": 8010, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": { "Ref" : "AdminCIDR" },
                       "FromPort": 8010
                   }, 
                   {
@@ -354,7 +389,7 @@
                   {
                       "ToPort": 22, 
                       "IpProtocol": "tcp", 
-                      "CidrIp": "0.0.0.0/0",
+                      "CidrIp": { "Ref" : "AdminCIDR" },
                       "FromPort": 22
                   }, 
                   {
@@ -605,10 +640,6 @@
                                 "chown $user:$user /home/$user/*",
                                 "chmod 755 /home/$user/*.sh",
                                 "chmod 755 /home/$user/*.pl",
- 
-                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
-                                "/home/$user/setup_zz_zNxlarge_disks.pl",
-                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
@@ -616,12 +647,25 @@
                                                 " ", 
                                                 [
                                                  "/home/$user/setupCfgFileVariables.pl", 
-                                                 { "Ref": "AWS::StackName" }, 
+                                                 { "Ref": "AWS::StackName" },
                                                  { "Ref" : "AWS::Region" }
                                                 ]
                                         ]
                                 },
                                 "echo SCRIPT: completed setupCfgFileVariables.pl",
+
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                {
+                                 "Fn::Join" : [
+                                         " ", 
+                                         [
+                                          "/home/$user/setup_zz_zNxlarge_disks.pl", 
+                                          { "Ref" : "EBSVolumesSlaves" },
+                                          "Slave"
+                                         ]
+                                 ]
+                                },
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                         
                                 "echo SCRIPT: starting install_hpcc.sh",
                                 {
@@ -842,10 +886,6 @@
                                 "chown $user:$user /home/$user/*",
                                 "chmod 755 /home/$user/*.sh",
                                 "chmod 755 /home/$user/*.pl",
- 
-                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
-                                "/home/$user/setup_zz_zNxlarge_disks.pl",
-                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
@@ -853,12 +893,25 @@
                                                 " ", 
                                                 [
                                                  "/home/$user/setupCfgFileVariables.pl", 
-                                                 { "Ref": "AWS::StackName" }, 
+                                                 { "Ref": "AWS::StackName" },
                                                  { "Ref" : "AWS::Region" }
                                                 ]
                                         ]
                                 },
                                 "echo SCRIPT: completed setupCfgFileVariables.pl",
+
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                {
+                                 "Fn::Join" : [
+                                         " ", 
+                                         [
+                                          "/home/$user/setup_zz_zNxlarge_disks.pl", 
+                                          { "Ref" : "EBSVolumesRoxie" },
+                                          "Roxie"
+                                         ]
+                                 ]
+                                },
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                         
                                 "echo SCRIPT: starting install_hpcc.sh",
                                 {
@@ -1087,10 +1140,6 @@
                                 "chown $user:$user /home/$user/*",
                                 "chmod 755 /home/$user/*.sh",
                                 "chmod 755 /home/$user/*.pl",
-
-                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
-                                "/home/$user/setup_zz_zNxlarge_disks.pl",
-                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
@@ -1098,12 +1147,25 @@
                                                 " ", 
                                                 [
                                                  "/home/$user/setupCfgFileVariables.pl", 
-                                                 { "Ref": "AWS::StackName" }, 
+                                                 { "Ref": "AWS::StackName" },
                                                  { "Ref" : "AWS::Region" }
                                                 ]
                                         ]
                                 },
                                 "echo SCRIPT: completed setupCfgFileVariables.pl",
+
+                                "echo SCRIPT: starting setup_zz_zNxlarge_disks.pl",
+                                {
+                                 "Fn::Join" : [
+                                         " ", 
+                                         [
+                                          "/home/$user/setup_zz_zNxlarge_disks.pl", 
+                                          { "Ref" : "EBSVolumesMaster" },
+                                          "Master"
+                                         ]
+                                 ]
+                                },
+                                "echo SCRIPT: completed setup_zz_zNxlarge_disks.pl",
                                                         
                                 "echo SCRIPT: starting install_hpcc.sh",
                                 {

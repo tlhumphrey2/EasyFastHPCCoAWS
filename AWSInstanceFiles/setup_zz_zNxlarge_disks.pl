@@ -1,13 +1,65 @@
 #!/usr/bin/perl
+@argv=@ARGV;
+print "DEBUG: Entering setup_zz_zNxlarge_disks.pl. JUST AFTER 1ST LINE. \@argv=(",join(", ",@argv),")\n";
 $ThisDir=($0=~/^(.*)\//)? $1 : ".";
+require "$ThisDir/getConfigurationFile.pl";
 require "$ThisDir/common.pl";
 $sshuser=getSshUser();
 
 # Get all devices
 $_=`lsblk`;
 @x=split("\n",$_);
-@xvdlines=grep(/\bxvd[b-z]/,@x);
+@xvdlines=sort grep(/\bxvd[b-z]/,@x);
 print "\@xvdlines=(",join(", ",@xvdlines),")\n";
+
+print "DEBUG: In setup_zz_zNxlarge_disks.pl. AFTER require getConfigurationFile.pl. \@ARGV=(",join(", ",@ARGV),")\n";
+
+# If there are command line arguments and the 1st is nummeric or volume id
+#  So, 1) if argument is number then make an ebs volume the size given in 1st commandline argument, 2) attach volume to this
+#  instance, 3) if argument is number then format file system, and 4) mount it to /var/lib/HPCCSystems
+if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/ )) ){
+  my $ebssize = shift @argv;
+  my $ClusterComponent = shift @argv;
+  my $instanceID=`curl http://169.254.169.254/latest/meta-data/instance-id`;
+  my $az = getAZ($region,$instanceID);
+  my $nextdriveletter=getNextDriveLetter($xvdlines[$#xvdlines]);
+  print "DEBUG: AS FOR EBS. ebssize=\"$ebssize\", region=\"$region\", az=\"$az\", nextdriveletter=\"$nextdriveletter\"\n";
+  my $v='';
+  if ( $ebssize =~ /^\d+$/ ){
+    print "aws ec2 create-volume --size $ebssize --region $region --availability-zone $az --volume-type gp2  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=$stackname-$ClusterComponent}]'\n";
+    my $makeebs=`aws ec2 create-volume --size $ebssize --region $region --availability-zone $az --volume-type gp2  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=$stackname-$ClusterComponent}]'`;
+    print "DEBUG: makeebs=\"$makeebs\"\n";
+    $v = ($makeebs=~/"VolumeId"\s*: "(vol-[^"]+)"/)? $1 : '';
+  }
+  else{
+    $v = $ebssize;
+    print "aws ec2 create-tags --resources $v --tags Key=Name,Value=$stackname-$ClusterComponent --region $region\n";
+    my $changeTag=`aws ec2 create-tags --resources $v --tags Key=Name,Value=$stackname-$ClusterComponent --region $region`;
+    print "DEBUG: changeTag=\"$changeTag\"\n";
+  }
+  my $dev = "/dev/xvd$nextdriveletter";
+  ATTACHVOLUME:
+    print("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log\n");
+    system("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log");
+    my $attach_vol=`cat /home/ec2-user/attach-volume.log`;
+    $attach_vol =~ s/\n+//g;
+    print "DEBUG: attach_vol=\"$attach_vol\"\n";
+    sleep(5);
+    goto "ATTACHVOLUME" if $attach_vol =~ /IncorrectState/s;
+
+  my $mountdevice = "/dev/xvd$nextdriveletter";
+
+  # Setup file system ONLY IF $dbssize is numeric which means the volume was just created and therefore needs file system.
+  if ( $ebssize =~ /^\d+$/ ){
+   print(" mkfs.ext4 $mountdevice\n");
+   system(" mkfs.ext4 $mountdevice");
+  }
+
+  print(" mkdir -p /var/lib/HPCCSystems &&  mount $mountdevice /var/lib/HPCCSystems\n");
+  system(" mkdir -p /var/lib/HPCCSystems &&  mount $mountdevice /var/lib/HPCCSystems");
+  print "DEBUG: Leaving EBS processing code.\n";
+  exit 0;
+}
 
 #----------------------------------------------------------------
 # If drives xvd[b-z] exists, then do what is needed to raid, format, and mount them
@@ -51,8 +103,8 @@ if ( scalar(@xvdlines) >= 1 ){
    system(" yum install xfsprogs.x86_64 -y");
 
    #----------------------------------------------------------------
-   print(" mkfs.xfs $mountdevice\n");
-   system(" mkfs.xfs $mountdevice");
+   print(" mkfs.ext4 $mountdevice\n");
+   system(" mkfs.ext4 $mountdevice");
 
    #----------------------------------------------------------------
    print(" mount $mountdevice /mnt\n");
@@ -89,4 +141,22 @@ my ($l)=@_;
   s/^\s*xvd(.).+$/$1/;
 print "Leaving getsfx. return \"$_\"\n";
 return $_;
+}
+#----------------------------------------------------------------
+sub getNextDriveLetter{
+my ($lastxvdline)=@_;
+my $lastdrv=getdrv($lastxvdline);
+my $lastdrvletter=substr($lastdrv,length($lastdrv)-1);
+my $nextdrvletter=++$lastdrvletter;
+return $nextdrvletter;
+}
+#----------------------------------------------------------------
+sub getAZ{
+my ($region,$instanceID)=@_;
+  # Get instance id from metadata
+  print "DEBUG: In getAZ. instanceID=\"$instanceID\"\n";
+  # Use describe-instance to get az
+  local $_=`aws ec2 describe-instances --instance-ids $instanceID --region $region --output table|egrep -i availability|sed "s/^.*us-/us-/"`;
+  my $az=(/(\S+)/)? $1 : $_;
+  return $az;
 }
