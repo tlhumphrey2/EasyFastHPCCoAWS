@@ -30,6 +30,8 @@ if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/
     my $makeebs=`aws ec2 create-volume --size $ebssize --region $region --availability-zone $az --volume-type gp2  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=$stackname-$ClusterComponent}]'`;
     print "DEBUG: makeebs=\"$makeebs\"\n";
     $v = ($makeebs=~/"VolumeId"\s*: "(vol-[^"]+)"/)? $1 : '';
+
+
   }
   else{
     $v = $ebssize;
@@ -37,7 +39,9 @@ if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/
     my $changeTag=`aws ec2 create-tags --resources $v --tags Key=Name,Value=$stackname-$ClusterComponent --region $region`;
     print "DEBUG: changeTag=\"$changeTag\"\n";
   }
-  my $dev = "/dev/xvd$nextdriveletter";
+
+  local $dev = "/dev/xvd$nextdriveletter";
+
   ATTACHVOLUME:
     print("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log\n");
     system("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log");
@@ -46,6 +50,13 @@ if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/
     print "DEBUG: attach_vol=\"$attach_vol\"\n";
     sleep(5);
     goto "ATTACHVOLUME" if $attach_vol =~ /IncorrectState/s;
+
+  if ( $ebssize =~ /^\d+$/ ){
+    # modify DeleteOnTermination to be true
+    print "Change DeleteOnTermination to true\n";
+    print("bash /home/ec2-user/DeleteOnTermination2True.sh $instanceID $dev $region\n");
+    system("bash /home/ec2-user/DeleteOnTermination2True.sh $instanceID $dev $region");
+  }
 
   my $mountdevice = "/dev/xvd$nextdriveletter";
 
