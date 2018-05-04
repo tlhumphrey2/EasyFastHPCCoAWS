@@ -34,7 +34,11 @@ for( my $i=$#private_ips; $i >= 0; $i--){
 
   if ( $mountDisks  && ! $EBSVolumesMountedByFstab ){
     if ( $ephemeral ){
-     if ( exists($ebs{$ip}) ){
+     if ( exists($EBS2Mount{$ip}) ){
+      print "mountEBSVolume($ip);\n";
+      mountEBSVolume($ip);
+     }
+     elsif ( exists($fstabMountedEBS{$ip}) ){
       print "ip=\"$ip\" has EBS VOLUME. NOTHING NEEDS TO BE DONE BECAUSE mount is in /etc/fstab\n";
      }
      else{
@@ -49,25 +53,40 @@ for( my $i=$#private_ips; $i >= 0; $i--){
      }
     }
     else{
-     my $dev2mount=getDev2Mount($ip);
-print "After calling getDev2Mount. dev2mount=\"$dev2mount\"\n";
-     print("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo mount /dev/$dev2mount $mountpoint\"\n");
-     system("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo mount /dev/$dev2mount $mountpoint\"");
+     print "mountEBSVolume($ip);\n";
+     mountEBSVolume($ip);
     }
   }
 }
 
 $rc=`for x in \$(cat $private_ips_file);do ssh -i $pem -t $sshuser@\$x "echo $x;df -BG $mountpoint";done`;
-print "DEBUG: Results of doing lsblk on all instances. rc=\"$rc\"\n";
+print "DEBUG: Results of doing \"dt -BG $mountpoint\" on all instances. rc=\"$rc\"\n";
+#------------------------------------------
+sub mountEBSVolume{
+my ($ip)=@_;
+     my $dev2mount=getDev2Mount($ip);
+print "After calling getDev2Mount. dev2mount=\"$dev2mount\"\n";
+     print("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo mount /dev/$dev2mount $mountpoint\"\n");
+     system("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo mount /dev/$dev2mount $mountpoint\"");
+}
 #------------------------------------------
 sub getDev2Mount{
 my ($ip)=@_;
- my $lsblk=`ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip "lsblk"`;
-print "DEBUG: In getDev2Mount. lsblk=\"$lsblk\"\n";
+ my $tries=3;
+ my $lsblk='';
+ my $t=0;
+ do {
+   $lsblk=`ssh -o StrictHostKeyChecking=no -i $pem -t -t $sshuser\@$ip "lsblk|egrep \"^xvd\"|sort"`;
+   print "DEBUG: In getDev2Mount. try=\"$t\", lsblk=\"$lsblk\"\n";
+   $t++;
+ } until (($lsblk !~ /^\s*$/) || ($t>=$tries));
+ die "In getDev2Mount::setupDisks.pl. Tried $tries times to get lsblk of $ip but could NOT. EXITING!\n" if (($lsblk =~ /^\s*$/) && ($t>=$tries));
  my @line=split(/\n/,$lsblk);
+ @line=sort grep(/^xvd/,@line);
+print "DEBUG: In getDev2Mount. After sort. \@line=(",join("\n",@line),")\n";
  my $dev2mount=$1 if $line[$#line] =~ /^\s*(\S+)/;
  $dev2mount=~s/[^[:ascii:]]//g;
-#print "DEBUG: In getDev2Mount. AFTER extracting. dev2mount=\"$dev2mount\"\n";
+print "In getDev2Mount. AFTER extracting. dev2mount=\"$dev2mount\"\n";
 return $dev2mount;
 }
 #------------------------------------------
