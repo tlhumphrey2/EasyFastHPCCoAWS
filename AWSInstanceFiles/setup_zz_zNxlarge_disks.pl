@@ -42,6 +42,7 @@ if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/
 
   local $dev = "/dev/xvd$nextdriveletter";
 
+  # Loop until volume is attached (if instance isn't ready volume won't be attached).
   ATTACHVOLUME:
     print("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log\n");
     system("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log");
@@ -50,14 +51,14 @@ if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/
     print "DEBUG: attach_vol=\"$attach_vol\"\n";
     sleep(5);
     goto "ATTACHVOLUME" if $attach_vol =~ /IncorrectState/s;
-=pod
+
   if ( $ebssize =~ /^\d+$/ ){
     # modify DeleteOnTermination to be true
     print "Change DeleteOnTermination to true\n";
     print("bash /home/ec2-user/DeleteOnTermination2True.sh $instanceID $dev $region\n");
     system("bash /home/ec2-user/DeleteOnTermination2True.sh $instanceID $dev $region");
   }
-=cut
+
   my $mountdevice = "/dev/xvd$nextdriveletter";
 
   # Setup file system ONLY IF $dbssize is numeric which means the volume was just created and therefore needs file system.
