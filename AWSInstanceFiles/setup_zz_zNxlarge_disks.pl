@@ -11,6 +11,8 @@ $_=`lsblk`;
 @x=split("\n",$_);
 @xvdlines=sort grep(/\bxvd[b-z]/,@x);
 print "\@xvdlines=(",join(", ",@xvdlines),")\n";
+local $nextdriveletter=getNextDriveLetter($xvdlines[$#xvdlines]);
+print "DEBUG: nextdriveletter=\"$nextdriveletter\"\n";
 
 print "DEBUG: In setup_zz_zNxlarge_disks.pl. AFTER require getConfigurationFile.pl. \@ARGV=(",join(", ",@ARGV),")\n";
 
@@ -22,7 +24,6 @@ if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/
   my $ClusterComponent = shift @argv;
   my $instanceID=`curl http://169.254.169.254/latest/meta-data/instance-id`;
   my $az = getAZ($region,$instanceID);
-  my $nextdriveletter=getNextDriveLetter($xvdlines[$#xvdlines]);
   print "DEBUG: AS FOR EBS. ebssize=\"$ebssize\", region=\"$region\", az=\"$az\", nextdriveletter=\"$nextdriveletter\"\n";
   my $v='';
   if ( $ebssize =~ /^\d+$/ ){
