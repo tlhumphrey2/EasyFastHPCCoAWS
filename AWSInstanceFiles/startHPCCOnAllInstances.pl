@@ -2,7 +2,6 @@
 $ThisDir=($0=~/^(.*)\//)? $1 : ".";
 require "$ThisDir/getConfigurationFile.pl";
 require "$ThisDir/common.pl";
-$sshuser=getSshUser();
 
 $mountDisks=0;
 # Any command line arguments is a sign that disks need to be mounted.
@@ -11,11 +10,13 @@ if ( scalar(@ARGV) > 0 ){
 }
 
 # Get all private_ips
+$master_ip='';
 open(IN,$private_ips) || die "Can't open for input: \"$private_ips\"\n";
 while(<IN>){
    next if /^\s*$/;
    chomp;
    $esp = $_ if $. == 1;
+   $master_ip = $_ if $master_ip=~/^\s*$/;
    push @private_ips, $_;
 }
 close(IN);
@@ -30,6 +31,7 @@ for( my $i=$#private_ips; $i >= 0; $i--){
     print("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo mount /dev/md127 /var/lib/HPCCSystems\"\n");
     system("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo mount /dev/md127 /var/lib/HPCCSystems\"");
   }
-  print("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo service hpcc-init start\"\n");
-  system("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$ip \"sudo service hpcc-init start\"");
 }
+
+print("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$master_ip \"sudo service hpcc-init start\"\n");
+system("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$master_ip \"sudo service hpcc-init start\"");

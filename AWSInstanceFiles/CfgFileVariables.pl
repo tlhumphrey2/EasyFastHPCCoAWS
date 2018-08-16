@@ -14,6 +14,12 @@ $DefaultValuesOfCfgVariables{'roxienodes'}=0;
 $DefaultValuesOfCfgVariables{'supportnodes'}=1;
 $DefaultValuesOfCfgVariables{'non_support_instances'}=1;
 $DefaultValuesOfCfgVariables{'UserNameAndPassword'}='';
-$DefaultValuesOfCfgVariables{'HPCCPlatform'}='HPCC-Platform-5.0.0-3';
+$DefaultValuesOfCfgVariables{'HPCCPlatform'}='HPCC-Platform-6.4.20-1';
 $DefaultValuesOfCfgVariables{'ToS3Bucket'}="s3://${stackname}-backup";
+$DefaultValuesOfCfgVariables{'channelsPerSlave'}="";
+$DefaultValuesOfCfgVariables{'sshuser'}="ec2-user";
+$DefaultValuesOfCfgVariables{'EIP'}="";
+foreach my $k (sort keys %DefaultValuesOfCfgVariables){
+  print "DEBUG: In CfgFileVariables.pl. DefaultValuesOfCfgVariables{$k}=\"$DefaultValuesOfCfgVariables{$k}\"\n";
+}
 1;

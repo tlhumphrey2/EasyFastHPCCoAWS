@@ -7,6 +7,17 @@ echo "sshuser=\"$sshuser\""
 
 echo "slavesPerNode=\"$slavesPerNode\""
 
+all_overrides='-override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true';
+
+#----------------------------------------------------------------------------------
+# If $channelsPerSlave is defined then set environment variable, channelsPerSlave,
+#  to $channelsPerSlave.
+#----------------------------------------------------------------------------------
+if [ ! -z $channelsPerSlave ]
+then
+  all_overrides="$all_overrides -override thor,@channelsPerSlave,$channelsPerSlave";
+fi
+
 #----------------------------------------------------------------------------------
 # If there are ROXIEs in the configuration then set roxieMulticastEnabled to false.
 #----------------------------------------------------------------------------------
@@ -14,6 +25,7 @@ set2falseRoxieMulticastEnabled=''
 if [ $roxienodes -gt 0 ]
 then
   set2falseRoxieMulticastEnabled=' -override roxie,@roxieMulticastEnabled,false'
+  all_overrides="$all_overrides $set2falseRoxieMulticastEnabled"
 
   echo "roxienodes is greater than 0. So:  execute perl $ThisDir/updateEnvGenConfigurationForHPCC.pl"
   perl $ThisDir/updateEnvGenConfigurationForHPCC.pl
@@ -53,6 +65,7 @@ then
    slave_override="-override thor,@globalMemorySize,$globalMemorySize"
    heap_override="-override thor,@heapUseHugePages,true"
    memory_override=" $master_override $slave_override $heap_override"
+   all_overrides="$all_overrides $master_override $slave_override $heap_override"
 fi
 
 #----------------------------------------------------------------------------------
@@ -61,8 +74,8 @@ fi
 envgen=/opt/HPCCSystems/sbin/envgen;
 
 # Make new environment.xml file for newly configured HPCC System.
-echo "$envgen -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes -slavesPerNode $slavesPerNode -roxieondemand 1"
-$envgen  -env $created_environment_file $memory_override $set2falseRoxieMulticastEnabled -override esp,@method,htpasswd -override thor,@replicateAsync,true -override thor,@replicateOutputs,true -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
+echo "$envgen -env $created_environment_file $all_overrides -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes -slavesPerNode $slavesPerNode -roxieondemand 1"
+$envgen  -env $created_environment_file $all_overrides -ipfile $private_ips -supportnodes $supportnodes -thornodes $non_support_instances -roxienodes $roxienodes  -slavesPerNode $slavesPerNode -roxieondemand 1
 
 #----------------------------------------------------------------------------------
 # If username and password is needed for system then do the follow.

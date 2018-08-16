@@ -6,13 +6,13 @@
          "ParameterGroups" : [
            {
              "Label" : { "default":"HPCC Systems Configuration" },
-             "Parameters" : [ "HPCCPlatform", "NumberOfSlaveInstances", "NumberOfRoxieInstances", "NumberOfSlavesPerInstance", "NumberOfSupportInstances", "ClusterInventoryFile" ]
+             "Parameters" : [ "HPCCPlatform", "NumberOfSlaveInstances", "NumberOfRoxieInstances", "NumberOfSlavesPerInstance", "NumberOfChannelsPerSlave", "NumberOfSupportInstances" ]
            },
            {
              "Label" : { "default":"Other Needed Parameters" },
              "Parameters" : [ "UserNameAndPassword", "KeyPair", "InstallCassandra", "ScriptsS3BucketFolder", "SSHUserName", "EBSVolumesMaster", "EBSVolumesSlaves", "EBSVolumesRoxie", "MasterInstanceType", "SlaveInstanceType", "RoxieInstanceType", "AdminCIDR" ]
            }
-         ],
+         ]
       }
     },
 
@@ -40,7 +40,9 @@
                 "HPCC-Platform-5.6.0-1",
                 "HPCC-Platform-5.6.4-1",
                 "HPCC-Platform-6.2.22-1",              
-                "HPCC-Platform-6.4.10-1"               
+                "HPCC-Platform-6.4.10-1",              
+                "HPCC-Platform-6.4.20-1",              
+                "HPCC-Platform-6.4.22-1"               
                 ],
             "Default" : "HPCC-Platform-6.4.10-1",
             "Type" : "String"
@@ -89,7 +91,7 @@
         "NumberOfSlaveInstances" : {
             "Description" : "Number of Slave instances to be launched",
             "Type" : "Number",
-            "Default" : "2"
+            "Default" : "1"
         },
 
         "NumberOfRoxieInstances" : {
@@ -101,12 +103,19 @@
         "NumberOfSlavesPerInstance" : {
             "Description" : "Number of THOR slave nodes per slave instance",
             "Type" : "Number",
-            "Default" : "2"
+            "Default" : "1"
+        },
+
+        "NumberOfChannelsPerSlave" : {
+            "Description" : "Number of channels (threads) per slave. ONLY ALLOWED WITH version 6 of the HPCC Platform.",
+            "Type" : "Number",
+            "Default" : "1"
         },
 
         "MasterInstanceType" : {
             "Description" : "HPCC Thor Master EC2 instance type",
             "AllowedValues" : [
+                "r3.large",
                 "r3.xlarge",
                 "r3.2xlarge",
                 "r3.4xlarge",
@@ -118,13 +127,14 @@
                 "i2.4xlarge",
                 "i2.8xlarge"
                 ],
-            "Default" : "r3.xlarge",
+            "Default" : "r3.large",
             "Type" : "String"
         },
 
         "SlaveInstanceType" : {
             "Description" : "HPCC Thor Slave EC2 instance type",
             "AllowedValues" : [
+                "r3.large",
                 "r3.xlarge",
                 "r3.2xlarge",
                 "r3.4xlarge",
@@ -136,13 +146,14 @@
                 "i2.4xlarge",
                 "i2.8xlarge"
                 ],
-            "Default" : "r3.xlarge",
+            "Default" : "r3.large",
             "Type" : "String"
         },
 
         "RoxieInstanceType" : {
             "Description" : "HPCC Roxie EC2 instance type",
             "AllowedValues" : [
+                "r3.large",
                 "r3.xlarge",
                 "r3.2xlarge",
                 "r3.4xlarge",
@@ -154,7 +165,7 @@
                 "i2.4xlarge",
                 "i2.8xlarge"
                 ],
-            "Default" : "r3.xlarge",
+            "Default" : "r3.large",
             "Type" : "String"
         },
 
@@ -647,8 +658,14 @@
                                                 " ", 
                                                 [
                                                  "/home/$user/setupCfgFileVariables.pl", 
+                                                 "-stackname",
                                                  { "Ref": "AWS::StackName" },
-                                                 { "Ref" : "AWS::Region" }
+                                                 "-region",
+                                                 { "Ref" : "AWS::Region" },
+                                                 "-pem",
+                                                 {"Ref" : "KeyPair" },
+                                                 "-channels",
+                                                 { "Ref" : "NumberOfChannelsPerSlave" }
                                                 ]
                                         ]
                                 },
@@ -893,8 +910,14 @@
                                                 " ", 
                                                 [
                                                  "/home/$user/setupCfgFileVariables.pl", 
+                                                 "-stackname",
                                                  { "Ref": "AWS::StackName" },
-                                                 { "Ref" : "AWS::Region" }
+                                                 "-region",
+                                                 { "Ref" : "AWS::Region" },
+                                                 "-pem",
+                                                 {"Ref" : "KeyPair" },
+                                                 "-channels",
+                                                 { "Ref" : "NumberOfChannelsPerSlave" }
                                                 ]
                                         ]
                                 },
@@ -1140,6 +1163,7 @@
                                 "chown $user:$user /home/$user/*",
                                 "chmod 755 /home/$user/*.sh",
                                 "chmod 755 /home/$user/*.pl",
+                                "chmod 400 /home/$user/*.pem",
                                                                 
                                 "echo SCRIPT: starting setupCfgFileVariables.pl",
                                 {
@@ -1147,8 +1171,14 @@
                                                 " ", 
                                                 [
                                                  "/home/$user/setupCfgFileVariables.pl", 
+                                                 "-stackname",
                                                  { "Ref": "AWS::StackName" },
-                                                 { "Ref" : "AWS::Region" }
+                                                 "-region",
+                                                 { "Ref" : "AWS::Region" },
+                                                 "-pem",
+                                                 {"Ref" : "KeyPair" },
+                                                 "-channels",
+                                                 { "Ref" : "NumberOfChannelsPerSlave" }
                                                 ]
                                         ]
                                 },

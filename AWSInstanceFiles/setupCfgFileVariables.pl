@@ -6,23 +6,55 @@ print "DEBUG: Entering setupCfgFileVariables.pl. ThisDir=\"$ThisDir\"\n";
 require "$ThisDir/getConfigurationFile.pl";
 require "$ThisDir/cf_common.pl";
 require "$ThisDir/common.pl";
-$sshuser=getSshUser();
-
-$stackname = shift @ARGV;
-$region = shift @ARGV;
-$EIP = (scalar(@ARGV)==1)? shift @ARGV : '' ;
-print "Entering setupCfgFileVariables.pl. Inputted arguments are: stackname=\"$stackname\", region=\"$region\", EIP=\"$EIP\"\n";
 
 # Default values for some configuration variables
 require "$ThisDir/CfgFileVariables.pl";
+
+# Initialize %ValueOfCfgVariable with the default value of each cfg variable
+%ValueOfCfgVariable=();
+foreach my $cfgvar (keys %DefaultValuesOfCfgVariables){
+   $ValueOfCfgVariable{$cfgvar}=$DefaultValuesOfCfgVariables{$cfgvar};
+}
+
+#================== Get Input Arguments ================================
+require "$ThisDir/newgetopt.pl";
+if ( ! &NGetOpt(
+                "sshuser=s", "stackname=s", "region=s", "pem=s", "channels=s"
+                ))      # Add Options as necessary
+{
+  print STDERR "\n[$0] -- ERROR -- Invalid/Missing options...\n\n";
+  exit(1);
+}
+$sshuser=$opt_sshuser || 'ec2-user';
+$ValueOfCfgVariable{'sshuser'}=$sshuser;
+$stackname=$opt_stackname || die "FATAL ERROR: In setupCfgFileVariables.pl. stackname WAS NOT GIVEN (REQUIRED)";
+$ValueOfCfgVariable{'stackname'}=$stackname;
+$region=$opt_region || die "FATAL ERROR: In setupCfgFileVariables.pl. region WAS NOT GIVEN (REQUIRED)";
+$ValueOfCfgVariable{'region'}=$region;
+$pem=$opt_pem || die "FATAL ERROR: In setupCfgFileVariables.pl. pem WAS NOT GIVEN (REQUIRED)";
+$ValueOfCfgVariable{'pem'}="$ThisDir/$pem.pem";
+$channelsPerSlave=$opt_channels || "1";
+$ValueOfCfgVariable{'channelsPerSlave'}=$channelsPerSlave;
+$EIP=$opt_eip;
+$ValueOfCfgVariable{'EIP'}=$EIP if $EIP !~ /^\s*$/;
+print "Entering setupCfgFileVariables.pl. Inputted arguments are: sshuser=\"$sshuser\", stackname=\"$stackname\", region=\"$region\", channelsPerSlave=\"$channelsPerSlave\", EIP=\"$EIP\"\n";
+foreach my $k (sort keys %ValueOfCfgVariable){
+  print "DEBUG: In setupCfgFileVariables.pl. After getting parameters. ValueOfCfgVariable{$k}=\"$ValueOfCfgVariable{$k}\"\n";
+}
+#===============END Get Input Arguments ================================
+
 #--------------------------------------------------------------------------------
 # Get any configuration variables, and their values, in the instance descriptions.
 #--------------------------------------------------------------------------------
 # First get instance descriptions for just instance having StackName equal to $stackname.
 $StackNameInstanceDescriptions=`aws ec2 describe-instances --region $region --filter "Name=tag:slavesPerNode,Values=*,Name=tag:StackName,Values=$stackname"`;
+print "DEBUG: In setupCfgFileVariables.pl. length of stack instance descriptions is ",length($StackNameInstanceDescriptions),"\n";
+
 # Note. This function's output will be in the hash %ValueOfCfgVariable, where the key is the cfg variable and value is its value
-%ValueOfCfgVariable=();
 getCfgVariablesFromInstanceDescriptions($StackNameInstanceDescriptions, keys %DefaultValuesOfCfgVariables);
+foreach my $k (sort keys %ValueOfCfgVariable){
+  print "DEBUG: In setupCfgFileVariables.pl. ValueOfCfgVariable{$k}=\"$ValueOfCfgVariable{$k}\"\n";
+}
 #-------------------------------------------------------------------------------------
 # END Get any configuration variables, and their values, in the instance descriptions.
 #-------------------------------------------------------------------------------------
@@ -39,7 +71,7 @@ print OUT join("\n",@InstanceIds),"\n";
 close(OUT);
 
 #------------------------------------------------------------------------------------
-# Adjust 'non_support_instances' and put all config vlaues in cfg_BestHoA.sh 
+# Adjust 'non_support_instances' and put all config values in cfg_BestHPCC.sh 
 #------------------------------------------------------------------------------------
 $nInstances=scalar(@InstanceIds);
 print "DEBUG: nInstances=\"$nInstances\"\n";
@@ -55,7 +87,7 @@ else{
 }
 
 #-------------------------------------------------
-# Put all configuration values in cfg_BestHoA.sh
+# Put all configuration values in cfg_BestHPCC.sh
 #-------------------------------------------------
 $cfgfile="$ThisDir/cfg_BestHPCC.sh";
 open(OUT,">>$cfgfile") || die "Can't open for append: \"$cfgfile\"\n";
@@ -80,6 +112,7 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
       if ( $First2Digits>=6.0 ){
         $platformpath="http://wpc.423A.rhocdn.net/00423A/releases/CE-Candidate-<base_version>/bin/platform";
 	print OUT "IsPlatformSixOrHigher=1\n";
+	$IsPlatformSixOrHigher=1;
       }
       my $platformBefore5_2=($First2Digits>=6.0)? "hpccsystems-platform_community-<version>.<osversion>.x86_64.rpm":"hpccsystems-platform_community-with-plugins-<version>.el6.x86_64.rpm";# Has underscore between platform and community  
       my $platformAfter5_2=($First2Digits>=6.0)? "hpccsystems-platform-community_<version>.<osversion>.x86_64.rpm":"hpccsystems-platform-community-with-plugins_<version>.el6.x86_64.rpm";# Has dash between platform and community   
@@ -101,10 +134,22 @@ print "DEBUG: First2Digits=\"$First2Digits\"\n";
       print OUT "hpcc_platform=$hpcc_platform\n";
    }
    else{
+      next if $cfgvar eq 'channelsPerSlave';
       print "DEBUG: $cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
       print OUT "$cfgvar=$ValueOfCfgVariable{$cfgvar}\n";
    }
 }
+
+if ( exists($ValueOfCfgVariable{'channelsPerSlave'}) && ($ValueOfCfgVariable{'channelsPerSlave'}>1) ){
+   if ( $IsPlatformSixOrHigher ){
+     print "DEBUG: Platform is version 6 or higher and ValueOfCfgVariable{'channelsPerSlave'}=\"$ValueOfCfgVariable{'channelsPerSlave'}\".\n";
+     print OUT "channelsPerSlave=$ValueOfCfgVariable{'channelsPerSlave'}\n";
+   }
+   else{
+      print "WARNING! Platform version is less than 6 but channelsPerSlave=$channelsPerSlave. NOT ALLOWED.\n";
+   }
+}
+
 close(OUT);
 
 # Get and put private and public ips in their respective files
