@@ -33,5 +33,5 @@ for( my $i=$#private_ips; $i >= 0; $i--){
   }
 }
 
-print("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$master_ip \"sudo service hpcc-init start\"\n");
-system("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$master_ip \"sudo service hpcc-init start\"");
+print("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$master_ip \"sudo \/opt\/HPCCSystems\/sbin\/hpcc-run.sh -a hpcc-init start\"\n");
+system("ssh -o StrictHostKeyChecking=no -t -t -i $pem $sshuser\@$master_ip \"sudo \/opt\/HPCCSystems\/sbin\/hpcc-run.sh -a hpcc-init start\"");
