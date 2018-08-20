@@ -44,7 +44,7 @@
                 "HPCC-Platform-6.4.20-1",              
                 "HPCC-Platform-6.4.22-1"               
                 ],
-            "Default" : "HPCC-Platform-6.4.10-1",
+            "Default" : "HPCC-Platform-6.4.20-1",
             "Type" : "String"
         },
 
