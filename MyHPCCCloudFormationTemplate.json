@@ -55,19 +55,19 @@
         },
 
         "EBSVolumesMaster" : {
-            "Description" : "Size in GBs of EBS Volume for Master(optional)",
+            "Description" : "Size in GBs of EBS Volume for Master(OPTIONAL)",
             "Type" : "String",
             "Default" : ""
         },
 
         "EBSVolumesSlaves" : {
-            "Description" : "Size in GBs of EBS Volume for Slaves(optional)",
+            "Description" : "Size in GBs of EBS Volume for Slaves(OPTIONAL)",
             "Type" : "String",
             "Default" : ""
         },
 
         "EBSVolumesRoxie" : {
-            "Description" : "Size in GBs of EBS Volume for Roxie(optional)",
+            "Description" : "Size in GBs of EBS Volume for Roxie(OPTIONAL)",
             "Type" : "String",
             "Default" : ""
         },
