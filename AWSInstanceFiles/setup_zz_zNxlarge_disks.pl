@@ -9,9 +9,9 @@ $sshuser=getSshUser();
 # Get all devices
 $_=`lsblk`;
 @x=split("\n",$_);
-@xvdlines=sort grep(/\bxvd[b-z]/,@x);
+@xvdlines=sort grep(/\bxvd[b-z]\b/,@x);
 print "\@xvdlines=(",join(", ",@xvdlines),")\n";
-local $nextdriveletter=getNextDriveLetter($xvdlines[$#xvdlines]);
+local $nextdriveletter=(scalar(@xvdlines)>0)? getNextDriveLetter($xvdlines[$#xvdlines]) : 'b';
 print "DEBUG: nextdriveletter=\"$nextdriveletter\"\n";
 
 print "DEBUG: In setup_zz_zNxlarge_disks.pl. AFTER require getConfigurationFile.pl. \@ARGV=(",join(", ",@ARGV),")\n";
