@@ -6,72 +6,89 @@ require "$ThisDir/getConfigurationFile.pl";
 require "$ThisDir/common.pl";
 $sshuser=getSshUser();
 
-# Get all devices
-$_=`lsblk`;
-@x=split("\n",$_);
-@xvdlines=sort grep(/\bxvd[b-z]\b/,@x);
-print "\@xvdlines=(",join(", ",@xvdlines),")\n";
+# Get all lsblk lines with non-root device lines.
+@xvdlines=get_lsblk_xvdlines();
 local $nextdriveletter=(scalar(@xvdlines)>0)? getNextDriveLetter($xvdlines[$#xvdlines]) : 'b';
 print "DEBUG: nextdriveletter=\"$nextdriveletter\"\n";
 
 print "DEBUG: In setup_zz_zNxlarge_disks.pl. AFTER require getConfigurationFile.pl. \@ARGV=(",join(", ",@ARGV),")\n";
 
+$sixteenTB=16384;
+
 # If there are command line arguments and the 1st is nummeric or volume id
-#  So, 1) if argument is number then make an ebs volume the size given in 1st commandline argument, 2) attach volume to this
-#  instance, 3) if argument is number then format file system, and 4) mount it to /var/lib/HPCCSystems
+#  So, 1) if argument is nummeric then make an ebs volume the size given in 1st commandline argument, 2) attach volume to this
+#  instance
 if ( ( scalar(@argv) > 0 ) && (( $argv[0] =~ /^\d+$/ ) || ( $argv[0] =~ /^vol\-/ )) ){
-  my $ebssize = shift @argv;
-  my $ClusterComponent = shift @argv;
-  my $instanceID=`curl http://169.254.169.254/latest/meta-data/instance-id`;
-  my $az = getAZ($region,$instanceID);
+  $ebssize = shift @argv;
+  local $ClusterComponent = shift @argv;
+  local $instanceID=`curl http://169.254.169.254/latest/meta-data/instance-id`;
+  local $az = getAZ($region,$instanceID);
   print "DEBUG: AS FOR EBS. ebssize=\"$ebssize\", region=\"$region\", az=\"$az\", nextdriveletter=\"$nextdriveletter\"\n";
-  my $v='';
+  local $v='';
+  local @Volume2Attach=();
+  @xvdlines=();
   if ( $ebssize =~ /^\d+$/ ){
-    print "aws ec2 create-volume --size $ebssize --region $region --availability-zone $az --volume-type gp2  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=$stackname-$ClusterComponent}]'\n";
-    my $makeebs=`aws ec2 create-volume --size $ebssize --region $region --availability-zone $az --volume-type gp2  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=$stackname-$ClusterComponent}]'`;
-    print "DEBUG: makeebs=\"$makeebs\"\n";
-    $v = ($makeebs=~/"VolumeId"\s*: "(vol-[^"]+)"/)? $1 : '';
-
-
+    # if volume size <= 16TB, which is maximum allowable size of single EBS volume.
+    if ( $ebssize <= $sixteenTB ){
+      my $v=makeEBSVolume($ebssize);
+      push @Volume2Attach, $v;
+      push @xvdlines, "xvd$nextdriveletter";
+    }
+    # Multiply ebs volumes must be made because $ebssize > 16TB.
+    else{
+      my $save_ebssize=$ebssize;
+      my $v=makeEBSVolume($sixteenTB);
+      push @Volume2Attach, $v;
+      push @xvdlines, "xvd$nextdriveletter";
+      $ebssize = $ebssize-$sixteenTB;
+      while ( $ebssize > $sixteenTB ){
+        $nextdriveletter++;
+        my $v=makeEBSVolume($sixteenTB);
+        push @Volume2Attach, $v;
+        push @xvdlines, "xvd$nextdriveletter";
+        $ebssize = $ebssize-$sixteenTB;
+      }
+      if ( $ebssize > 0 ){
+        $nextdriveletter++;
+        my $v=makeEBSVolume($ebssize);
+        push @Volume2Attach, $v;
+        push @xvdlines, "xvd$nextdriveletter";
+      }
+      $ebssize = $save_ebssize;
+    }
   }
   else{
     $v = $ebssize;
     print "aws ec2 create-tags --resources $v --tags Key=Name,Value=$stackname-$ClusterComponent --region $region\n";
     my $changeTag=`aws ec2 create-tags --resources $v --tags Key=Name,Value=$stackname-$ClusterComponent --region $region`;
     print "DEBUG: changeTag=\"$changeTag\"\n";
+    push @Volume2Attach, $v;
+    push @xvdlines, "xvd$nextdriveletter";
   }
 
-  local $dev = "/dev/xvd$nextdriveletter";
+  # Attach all ebs volumes
+  for (my $i=0; $i < scalar(@xvdlines); $i++){
+    my $v=$Volume2Attach[$i];
+    my $dev = $xvdlines[$i];
 
-  # Loop until volume is attached (if instance isn't ready volume won't be attached).
-  ATTACHVOLUME:
-    print("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log\n");
-    system("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log");
-    my $attach_vol=`cat /home/ec2-user/attach-volume.log`;
-    $attach_vol =~ s/\n+//g;
-    print "DEBUG: attach_vol=\"$attach_vol\"\n";
-    sleep(5);
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Loop until volume is attached (if instance isn't ready volume won't be attached).
+    ATTACHVOLUME:
+     print("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log\n");
+     system("aws ec2 attach-volume --volume-id $v --instance-id $instanceID --device $dev --region $region &> /home/ec2-user/attach-volume.log");
+     my $attach_vol=`cat /home/ec2-user/attach-volume.log`;
+     $attach_vol =~ s/\n+//g;
+     print "DEBUG: attach_vol=\"$attach_vol\"\n";
+     sleep(5);
     goto "ATTACHVOLUME" if $attach_vol =~ /IncorrectState/s;
+    #-------------------------------------------------------------------------------------------------------------------------
 
-  if ( $ebssize =~ /^\d+$/ ){
     # modify DeleteOnTermination to be true
     print "Change DeleteOnTermination to true\n";
     print("bash /home/ec2-user/DeleteOnTermination2True.sh $instanceID $dev $region\n");
     system("bash /home/ec2-user/DeleteOnTermination2True.sh $instanceID $dev $region");
   }
-
-  my $mountdevice = "/dev/xvd$nextdriveletter";
-
-  # Setup file system ONLY IF $dbssize is numeric which means the volume was just created and therefore needs file system.
-  if ( $ebssize =~ /^\d+$/ ){
-   print(" mkfs.ext4 $mountdevice\n");
-   system(" mkfs.ext4 $mountdevice");
-  }
-
-  print(" mkdir -p /var/lib/HPCCSystems &&  mount $mountdevice /var/lib/HPCCSystems\n");
-  system(" mkdir -p /var/lib/HPCCSystems &&  mount $mountdevice /var/lib/HPCCSystems");
   print "DEBUG: Leaving EBS processing code.\n";
-  exit 0;
 }
 
 #----------------------------------------------------------------
@@ -116,8 +133,10 @@ if ( scalar(@xvdlines) >= 1 ){
    system(" yum install xfsprogs.x86_64 -y");
 
    #----------------------------------------------------------------
-   print(" mkfs.ext4 $mountdevice\n");
-   system(" mkfs.ext4 $mountdevice");
+   if ((!defined($ebssize)) || ( $ebssize =~ /^\d+$/ )){
+     print(" mkfs.ext4 $mountdevice\n");
+     system(" mkfs.ext4 $mountdevice");
+   }
 
    #----------------------------------------------------------------
    print(" mount $mountdevice /mnt\n");
@@ -151,7 +170,7 @@ return $_;
 sub getsfx{
 my ($l)=@_;
   local $_=$l;
-  s/^\s*xvd(.).+$/$1/;
+  s/^\s*xvd(.).*$/$1/;
 print "Leaving getsfx. return \"$_\"\n";
 return $_;
 }
@@ -164,6 +183,15 @@ my $nextdrvletter=++$lastdrvletter;
 return $nextdrvletter;
 }
 #----------------------------------------------------------------
+sub get_lsblk_xvdlines{
+# Get all devices
+local $_=`lsblk`;
+my @x=split("\n",$_);
+my @xvdlines=sort grep(/\bxvd[b-z]\b/,@x);
+print "\@xvdlines=(",join(", ",@xvdlines),")\n";
+return @xvdlines;
+}
+#----------------------------------------------------------------
 sub getAZ{
 my ($region,$instanceID)=@_;
   # Get instance id from metadata
@@ -172,4 +200,13 @@ my ($region,$instanceID)=@_;
   local $_=`aws ec2 describe-instances --instance-ids $instanceID --region $region --output table|egrep -i availability|sed "s/^.*us-/us-/"`;
   my $az=(/(\S+)/)? $1 : $_;
   return $az;
+}
+#----------------------------------------------------------------
+sub makeEBSVolume{
+my ($ebssize)=@_;
+   print "aws ec2 create-volume --size $ebssize --region $region --availability-zone $az --volume-type gp2  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=$stackname-$ClusterComponent}]'\n";
+   my $makeebs=`aws ec2 create-volume --size $ebssize --region $region --availability-zone $az --volume-type gp2  --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value=$stackname-$ClusterComponent}]'`;
+   print "DEBUG: makeebs=\"$makeebs\"\n";
+   my $v = ($makeebs=~/"VolumeId"\s*: "(vol-[^"]+)"/)? $1 : '';
+return $v;
 }
