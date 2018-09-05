@@ -56,7 +56,7 @@ sub getMyPrivateIP{
   local $_=`ifconfig`;
   # Find line like: "inet addr:10.60.4.245".
   my $ip_re='\b\d+(?:\.\d+){3}\b';
-  my $ip= (/inet addr:\s*($ip_re)/s)? $1 : '';
+  my $ip= (/inet(?: addr:)?\s*($ip_re)/s)? $1 : '';
   die "In getPrivateIP. CAN'T FIND PRIVATE IP IN OUTPUT OF 'ifconfig': \"$_\"\n" if $ip eq '';
   return $ip;
 }
