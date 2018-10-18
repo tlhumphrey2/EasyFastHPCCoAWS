@@ -105,7 +105,7 @@ foreach my $cfgvar (keys %ValueOfCfgVariable){
    # Also, we will determine OS version (either 'el6' or 'el7'.
    elsif ( $cfgvar eq 'HPCCPlatform' ){ 
       my $version = $1 if $ValueOfCfgVariable{$cfgvar} =~ /^hpcc-platform-(.+)$/i;
-      my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
+      my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\w+)?/;# examples: 6.2.4-3 or 7.0.0-rc3
       my $First2Digits = $1 if $base_version =~ /^(\d+\.\d+)/;
 
       my $platformpath="http://cdn.hpccsystems.com/releases/CE-Candidate-<base_version>/bin/platform";   
