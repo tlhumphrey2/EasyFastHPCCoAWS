@@ -12,5 +12,5 @@ The three-step process is:
 
 Also, in this repository, you will find code and instructions for configuring a small instance that you can use to start and stop your cluster (so AWS costs are minimized). Look at the folder, [StopStartHPCC](StopStartHPCC). The README file there provides instructions for a) setting-up the instance and b) stopping/starting your cluster.
 
-##2019/02/04. Newly Added
+## 2019/02/04. Newly Added
 The Cloud Formation template, HaaS-CloudFormationTemplate.json, is newly added. It is easier to use than either of the other 2 templates in this repository. Plus, it is fault tolerant. That is, if an instance in your cluster fails, another will be launched and your data volume will be attached to it.
