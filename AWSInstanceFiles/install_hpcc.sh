@@ -42,8 +42,11 @@ cd hpcc
 echo "wget $hpcc_platform"
 wget $hpcc_platform
 
-#if [ "$IsPlatformSixOrHigher" -eq 1 -a "$sshuser" != 'centos' ];then
 if [ "$IsPlatformSixOrHigher" -eq 1 ];then
+ if [ "$IsPlatformSix" == "" ];then
+   echo "$ThisDir/install-devtools2-and-libstdc.sh"
+   $ThisDir/install-devtools2-and-libstdc.sh
+ fi
  echo "yum install $hpcc_platform -y"
  yum install $hpcc_platform -y
 else
