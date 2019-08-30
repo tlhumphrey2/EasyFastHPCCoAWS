@@ -8,10 +8,9 @@ while(<CFG>){
    chomp;
    next if /^#/ || /^\s*$/;
    
-   if ( /^(\w+)=(.*)\s*$/ ){
+   if ( /^(\w+)="?((?:|[^"].*[^"]))"?$/ ){
       my $env_variable=$1;
       my $value=$2;
-      $value=$1 if ($value =~ /^"(.*)"$/);
       if ( ! exists($env_variable{$env_variable}) ){
         push @env_variable, $env_variable;
       }

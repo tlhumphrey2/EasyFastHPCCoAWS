@@ -42,8 +42,9 @@ cd hpcc
 echo "wget $hpcc_platform"
 wget $hpcc_platform
 
+#if [ "$IsPlatformSixOrHigher" -eq 1 -a "$sshuser" != 'centos' ];then
 if [ "$IsPlatformSixOrHigher" -eq 1 ];then
- if [ "$IsPlatformSix" == "" ];then
+ if [ "$FirstDigitOfPlatformVersion" -gt 6 ];then
    echo "$ThisDir/install-devtools2-and-libstdc.sh"
    $ThisDir/install-devtools2-and-libstdc.sh
  fi

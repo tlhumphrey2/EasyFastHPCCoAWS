@@ -9,7 +9,7 @@
              "Parameters" : [ "HPCCPlatform", "NumberOfSlaveInstances", "NumberOfRoxieInstances", "NumberOfSlavesPerInstance", "NumberOfChannelsPerSlave", "NumberOfSupportInstances" ]
            },
            {
-             "Label" : { "default":"Other Parameters" },
+             "Label" : { "default":"Other Needed Parameters" },
              "Parameters" : [ "UserNameAndPassword", "KeyPair", "InstallCassandra", "ScriptsS3BucketFolder", "SSHUserName", "EBSVolumesMaster", "EBSVolumesSlaves", "EBSVolumesRoxie", "MasterInstanceType", "SlaveInstanceType", "RoxieInstanceType", "AdminCIDR" ]
            }
          ]

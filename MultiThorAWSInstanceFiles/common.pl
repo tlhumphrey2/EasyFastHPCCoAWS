@@ -10,7 +10,7 @@ my ($HPCCPlatform)=@_;
 print "DEBUG: Entering addPathToHPCCPlatform, HPCCPlatform=\"$HPCCPlatform\"\n";
   my $IsPlatformSixOrHigher=0;
       my $version = $1 if $HPCCPlatform =~ /^hpcc-platform-(.+)$/i;
-      my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\w+)?/;
+      my $base_version = $1 if $version =~ /^(\d+\.\d+\.\d+)(?:-\d+)?/;
       my $First2Digits = $1 if $base_version =~ /^(\d+\.\d+)/;
 
       # Set platform path based on whether platform version is >= 6.0.
