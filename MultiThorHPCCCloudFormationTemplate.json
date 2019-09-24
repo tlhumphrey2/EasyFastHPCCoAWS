@@ -84,7 +84,7 @@
         },
 
         "ClusterInventoryFile" : {
-            "Description" : "CURRENTLY NO SUPPORTED",
+            "Description" : "CURRENTLY NOT SUPPORTED",
             "Type" : "String",
             "Default" : "NONE"
         },
