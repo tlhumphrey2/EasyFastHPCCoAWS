@@ -3,7 +3,7 @@
 ....key="Tags":
 .....GROUP[0]
 ......key=Key, value=aws:cloudformation:stack-id
-......key=Value, value=arn:aws:cloudformation:us-east-2:633162230041:stack/test-inventory-file-2/837cfc80-1afb-11e8-b85a-503f3157b035
+......key=Value, value=arn:aws:cloudformation:us-east-2:123456789012:stack/test-inventory-file-2/837cfc80-1afb-11e8-b85a-503f3157b035
 .....GROUP[1]
 ......key=Key, value=aws:autoscaling:groupName
 ......key=Value, value=test-inventory-file-2-InstanceASG-E3RA2FQJH4IL
